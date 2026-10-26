@@ -9,7 +9,7 @@
 webview{flex:1;border:0}#load{position:absolute;top:38px;inset-inline:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#070a14;gap:16px}
 .sp2{width:42px;height:42px;border-radius:50%;border:3px solid #1f2533;border-top-color:#8b5cf6;animation:r 1s linear infinite}@keyframes r{to{transform:rotate(360deg)}}
 </style><link rel="stylesheet" href="trading.css"></head><body>
-<div id="bar"><span class="dot"></span><b>Custom Hermes</b><span id="tabs"><button class="on" data-tab="dash">Dashboard</button><button data-tab="b">B Trading</button><button data-tab="p">P Trading</button><button data-tab="c">C Trading</button></span><span id="tools" style="margin-left:10px"><button onclick="wv.goBack()">&#8592;</button><button onclick="wv.reload()">&#10227;</button><button onclick="wv.loadURL('http://127.0.0.1:9120/')">Home</button></span>
+<div id="bar"><span class="dot"></span><b>Custom Hermes</b><span id="tabs"><button class="on" data-tab="dash">Dashboard</button><button data-tab="b">B Trading</button><button data-tab="c">C Trading</button></span><span id="tools" style="margin-left:10px"><button onclick="wv.goBack()">&#8592;</button><button onclick="wv.reload()">&#10227;</button><button onclick="wv.loadURL('http://127.0.0.1:9120/')">Home</button></span>
 <span class="sp"></span><label><input type="checkbox" id="lg"> Launch at login</label>
 <button onclick="ipc.send('win','min')">&#8211;</button><button onclick="ipc.send('win','max')">&#9744;</button><button id="x" onclick="ipc.send('win','close')">&#10005;</button></div>
 <template id="trTpl"><div class="trading" style="display:none"><div class="grid">
@@ -23,7 +23,7 @@ webview{flex:1;border:0}#load{position:absolute;top:38px;inset-inline:0;bottom:0
   <div class="chips" id="foundChips"></div>
   <div class="row" style="margin-top:10px"><button class="b p" id="saveCreds">Save (encrypted)</button><button class="b" id="testConn">Test</button></div>
   <div class="row" style="margin-top:8px"><button class="b" id="forget">Forget keys</button><button class="b" id="muteBtn">🔊 Voice on</button></div>
-  <div class="msg" id="connMsg"></div>
+  <div class="msg" id="connMsg"></div><div class="msg" id="cronMsg"></div>
  </div>
  <div class="card" style="margin-top:14px"><h3>Order <span class="tag">5x isolated</span></h3>
   <div class="seg" id="typeSeg"><button data-t="market" class="on">Market</button><button data-t="limit">Limit</button></div>
@@ -38,7 +38,7 @@ webview{flex:1;border:0}#load{position:absolute;top:38px;inset-inline:0;bottom:0
  </div>
 </div>
 <div>
- <div class="seg acct" id="acctSeg" style="display:none;margin-bottom:12px"></div><div class="card" id="pInfo" style="display:none;margin-bottom:14px"></div><div class="stats"><div class="card stat"><div>Equity</div><b id="sEq">–</b><div id="sEqSub" style="font-size:10.5px;margin-top:3px"></div></div><div class="card stat"><div>Available</div><b id="sAv">–</b></div><div class="card stat"><div>Margin used</div><b id="sMu">–</b></div><div class="card stat"><div>Unrealized PnL</div><b id="sPnl">–</b></div></div>
+ <div class="stats"><div class="card stat"><div>Equity</div><b id="sEq">–</b><div id="sEqSub" style="font-size:10.5px;margin-top:3px"></div></div><div class="card stat"><div>Available</div><b id="sAv">–</b></div><div class="card stat"><div>Margin used</div><b id="sMu">–</b></div><div class="card stat"><div>Unrealized PnL</div><b id="sPnl">–</b></div></div>
  <div class="card"><div class="row" style="margin-bottom:10px"><div class="instbox" style="flex:2"><input id="instSearch" placeholder="Search instrument (e.g. BTC)" value="BTC-USDT"><div id="instList"></div></div>
   <select id="barSel" style="flex:0 0 90px"><option>1m</option><option>5m</option><option selected>15m</option><option>1H</option><option>4H</option><option>1D</option></select><b id="lastPx" style="flex:0 0 120px;text-align:right;font-size:18px">–</b></div>
   <div id="chartWrap"><div id="chart"></div><button id="resetChart" title="Reset chart">⟲</button></div></div>
@@ -49,7 +49,10 @@ webview{flex:1;border:0}#load{position:absolute;top:38px;inset-inline:0;bottom:0
  <div class="card" style="margin-top:14px"><h3>TP / SL orders</h3><table><thead><tr><th>Inst</th><th>TP</th><th>SL</th><th></th></tr></thead><tbody id="tpslBody"></tbody></table></div>
  <div class="card" style="margin-top:14px"><h3>Activity</h3><div id="actLog" style="font-size:12px;color:#aeb7d4;max-height:300px;overflow:auto;line-height:1.6"></div></div>
 </div>
-</div></div></template>
+</div>
+<div class="card hist" style="margin-top:14px"><h3>Closed Trade History <span class="tag" id="histSrc">loading…</span></h3><div class="htot" id="histTot"></div>
+ <table class="stack"><thead><tr><th>Ticker</th><th>Direction</th><th>Entry</th><th>Exit</th><th>Size</th><th>PnL $</th><th>PnL %</th><th>Opened</th><th>Closed</th><th>Duration</th><th>Result</th></tr></thead><tbody id="histBody"></tbody></table></div>
+</div></template>
 <div id="trHost"></div>
 <webview id="wv" src="about:blank"></webview>
 <div id="load"><div class="sp2" id="sp"></div><div id="msg">Starting Custom Hermes services…</div></div>

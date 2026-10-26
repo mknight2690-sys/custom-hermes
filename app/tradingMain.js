@@ -1,10 +1,10 @@
-// Custom Hermes Trading: signed calls for BloFin (B), Propr (P) and Coinbase (C) run here (main process).
+// Custom Hermes Trading: signed calls for BloFin (B), and Coinbase (C) run here (main process).
 // Secrets are never logged or sent back to the renderer. Each adapter normalizes to the BloFin data shape.
 const {ipcMain,dialog,safeStorage,app,clipboard,nativeImage}=require('electron');const fs=require('fs');const path=require('path');const crypto=require('crypto');
-const MOCK=!!process.env.CUSTOM_HERMES_MOCK;const EXS=['b','p','c'];
-const NAME={b:'BloFin',p:'Propr',c:'Coinbase'};const CUR={b:'USDT',p:'USDC',c:'USD'};
-const FIELDS={b:['apiKey','secret','passphrase','mode'],p:['apiKey'],c:['apiKey','secret']};
-const credFile=ex=>path.join(app.getPath('userData'),{b:'blofin.cred',p:'propr.cred',c:'coinbase.cred'}[ex]);
+const MOCK=!!process.env.CUSTOM_HERMES_MOCK;const TESTRUN=!!process.env.CUSTOM_HERMES_TEST;const EXS=['b','c'];
+const NAME={b:'BloFin',c:'Coinbase'};const CUR={b:'USDT',c:'USD'};
+const FIELDS={b:['apiKey','secret','passphrase','mode'],c:['apiKey','secret']};
+const credFile=ex=>path.join(app.getPath('userData'),{b:'blofin.cred',c:'coinbase.cred'}[ex]);
 const prefFile=()=>path.join(app.getPath('userData'),'trading.json');
 const creds={};const T=12000;
 const ck=ex=>{if(!EXS.includes(ex))throw new Error('bad exchange');return ex};
@@ -13,8 +13,6 @@ const ck=ex=>{if(!EXS.includes(ex))throw new Error('bad exchange');return ex};
 function parseCredText(text,ex='b'){
   const out={};let t=String(text||'').replace(/^\uFEFF/,'');
   const pem=t.match(/-----BEGIN [A-Z ]+-----[\s\S]+?-----END [A-Z ]+-----/);
-  const pk=t.match(/pk_live_[A-Za-z0-9_\-]{8,}/);
-  if(ex==='p'){if(pk)out.apiKey=pk[0];return out;}
   const assign=(k,v)=>{v=String(v||'').trim().replace(/^["'`]|["'`],?$/g,'').trim();if(!v)return;k=String(k).toLowerCase().replace(/[^a-z]/g,'');
     if(/pass(phrase|word)?/.test(k)){out.passphrase??=v}
     else if(/secret|private/.test(k)){out.secret??=v}
@@ -56,99 +54,6 @@ const B={
   cancel:o=>o.tpslId?bSigned('POST','/api/v1/trade/cancel-tpsl',null,[{instId:o.instId,tpslId:o.tpslId}]):bSigned('POST','/api/v1/trade/cancel-order',null,{orderId:o.orderId}),
   close:o=>bSigned('POST','/api/v1/trade/close-position',null,{instId:o.instId,marginMode:o.marginMode||'isolated',positionSide:o.positionSide||'net'})};
 
-// ---------- Propr (Hyperliquid-backed prop accounts; X-API-Key pk_live_) ----------
-const PB='https://api.propr.xyz/v1',HL='https://api.hyperliquid.xyz/info';
-async function pReq(method,p,body){const c=creds.p;if(!c||!c.apiKey)throw new Error('No Propr key saved');
-  return jget(PB+p,{method,headers:{'X-API-Key':c.apiKey,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});}
-const hl=body=>jget(HL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-const strip=a=>String(a||'').replace(/^xyz:/,'');
-const ulid=()=>{const A='0123456789ABCDEFGHJKMNPQRSTVWXYZ';let t=Date.now(),s='';for(let i=0;i<10;i++){s=A[t%32]+s;t=Math.floor(t/32)}const r=crypto.randomBytes(16);for(let i=0;i<16;i++)s+=A[r[i]%32];return s};
-let pAccts=[],pChal={},pAtt={};
-const str=v=>v==null?'':typeof v==='object'?str(v.en??v.displayName??v.name??v.title??v.label??(Object.values(v).find(x=>typeof x==='string')||'')):String(v);
-const money=n=>{n=+n;if(!n)return '';return n>=1000?(n%1000?(n/1000).toFixed(1):n/1000)+'K':String(n)};
-function pLabel(r,ch,acc){const rc=(r.challenge&&typeof r.challenge==='object')?r.challenge:{};ch=Object.assign({},rc,ch||{});if(rc.name)ch.name=rc.name;const names=[r.name,r.displayName,r.challengeName,r.productName,ch.displayName,ch.name,ch.title,rc.name,r.product,acc&&acc.label].map(str).filter(Boolean);
-  const st=String(r.status||'');const funded=/fund/i.test(st+str(ch.type)+str(r.type)+str(r.currentPhase?.name)+str(acc?.type));const kind=funded?'Funded Account':'Challenge';
-  let n=names[0]||'';const size=pick([ch,r,r.currentPhase,acc],['initialBalance','accountSize','size','startingBalance']);
-  if(n){if(funded)n=n.replace(/\s*challenge\s*$/i,'');if(!/challenge|funded|account/i.test(n)&&!(/free/i.test(n)&&!funded))n=n+' '+kind;else if(funded&&!/funded/i.test(n))n=n+' Funded Account';
-    if(size&&!/\d+(\.\d+)?\s*k\b|\d{4,}/i.test(n)&&!/free/i.test(n))n=money(size)+' '+n;}
-  else n=(size?money(size)+' ':'')+kind;
-  return n.replace(/\s+/g,' ').trim();}
-async function pAccounts(){const j=await pReq('GET','/challenge-attempts?limit=50');const rows=j.data||j.items||(Array.isArray(j)?j:[]);const seen=new Set();
-  try{const c=await pReq('GET','/challenges?limit=100');for(const x of (c.data||c.items||[]))pChal[x.challengeId||x.id]=x;}catch(e){}
-  const rank=st=>/active|fund/i.test(st)?0:/pass/i.test(st)?1:2;
-  pAccts=rows.map(r=>{const id=r.accountId||r.account?.accountId||r.account?.id;if(!id||seen.has(id))return null;seen.add(id);pAtt[id]=r;const ch=pChal[r.challengeId]||r.challenge||{};
-    const st=str(r.status);
-    return {id,status:st,label:pLabel(r,ch,null)+(st&&!/active/i.test(st)?' · '+st:'')}}).filter(Boolean).sort((a,b)=>rank(a.status)-rank(b.status));
-  return pAccts;}
-// read a rule from any of several API objects; returns {v,src}
-function pick(objs,keys){for(const o of objs){if(!o)continue;for(const k of keys){const v=k.split('.').reduce((a,x)=>a==null?a:a[x],o);if(v!=null&&v!==''&&!isNaN(+v))return +v;}}return null;}
-const pct=v=>v==null?null:(Math.abs(v)>1?v/100:v);
-function pInfo(id,acc,trades,upnl){const r=pAtt[id]||{},ch=pChal[r.challengeId]||r.challenge||{},ph=r.currentPhase||(r.phases||[]).find(p=>p.phaseId===r.currentPhaseId)||{};
-  const phRules=(ch.phases||[]).find(p=>p.phaseId===r.currentPhaseId)||{};const O=[phRules,ph,ch,ch.rules,phRules.rules,acc];
-  const name=pLabel(r,ch,acc),nm=name.toLowerCase();const st=str(r.status);const funded=/fund/i.test(st+String(ch.type||''));
-  const size=pick(O,['initialBalance','accountSize','size','startingBalance'])??pick([acc],['initialBalance','startingBalance']);
-  const eq=+(acc.marginBalance??acc.equity??acc.balance??0),bal=+(acc.balance??eq);
-  let tgt=pick(O,['profitTarget','profitTargetPercent','targetProfit','profitTargetPct']),tsrc='api';
-  const target=tgt==null||!size?null:(tgt<=100?size*(1+pct(tgt)):tgt);
-  let dd=pick(O,['maxDrawdown','maxDrawdownPercent','maxLoss','maxTotalLoss','drawdownLimit']),ddsrc='api';const ddType=String(ch.drawdownType||phRules.drawdownType||'').toLowerCase();
-  let trailing=/trail/.test(ddType);
-  if(dd==null){ddsrc='derived';if(/turbo/.test(nm))dd=3;else if(/classic/.test(nm))dd=6;else if(/\bpro\b/.test(nm))dd=5;else if(/2.?step|two/.test(nm)){dd=8;trailing=true;}}
-  const closes=(trades||[]).filter(t=>/close|liquid/i.test(t.type||'')||+t.realizedPnl);const pnls=closes.map(t=>+t.realizedPnl||0);
-  let cum=0,peak=size||0;for(const t of [...closes].reverse()){cum+=+t.realizedPnl||0;peak=Math.max(peak,(size||0)+cum);}peak=Math.max(peak,eq);
-  const ddAmt=dd==null||!size?null:(dd<=100?size*pct(dd):dd);const floor=ddAmt==null?null:(trailing?peak-ddAmt:size-ddAmt);
-  if(trailing&&ddsrc==='api')ddsrc='api (peak derived)';
-  let dl=pick(O,['dailyLossLimit','maxDailyLoss','dailyDrawdown','dailyLoss','maxDailyLossPercent']);const dlAmt=dl==null||!size?null:(dl<=100?size*pct(dl):dl);
-  const d0=new Date();d0.setUTCHours(0,0,0,0);const today=closes.filter(t=>new Date(t.executedAt||t.createdAt)>=d0).reduce((a,t)=>a+(+t.realizedPnl||0),0);
-  const usedToday=Math.max(0,-(today+Math.min(0,upnl)));
-  const wins=pnls.filter(x=>x>0).length,losses=pnls.filter(x=>x<0).length;const split=pick(O,['profitSplit','payoutSplit','profitShare'])??80;
-  const prof=size?Math.max(0,eq-size):null;
-  return {name,type:funded?'Funded':'Challenge',size,tier:str(ch.tier||ch.level||phRules.name||ph.name)||null,phase:ph.order??null,status:st||'active',eq,bal,upnl,
-    target,targetSrc:target==null?'not in API':tsrc,progress:target&&size?Math.max(0,(eq-size)/(target-size)*100):null,
-    floor,floorSrc:floor==null?'not in API':ddsrc,trailing,ddPct:dd,distFloor:floor==null?null:eq-floor,ddBudget:ddAmt,
-    dailyLimit:dlAmt,dailySrc:dlAmt==null?'not in API':'api',usedToday,dailyRemaining:dlAmt==null?null:dlAmt-usedToday,todayRealized:today,
-    trades:closes.slice(0,30).map(t=>({inst:strip(t.base||t.asset),side:t.positionSide,pnl:+t.realizedPnl||0,at:t.executedAt||t.createdAt,liq:!!t.isLiquidation})),
-    wins,losses,winRate:wins+losses?wins/(wins+losses)*100:null,split,payoutAvail:funded&&prof!=null?prof*pct(split):null,payoutEligible:funded?(prof>0?'profit available (eligibility rules not in API)':'no profit yet'):'n/a until funded',
-    failureReason:str(r.failureReason)||null};}
-const isTrig=t=>/stop|take_profit/.test(t);
-function pNorm(acct,positions,orders){
-  const ord=orders.map(o=>({orderId:o.orderId,instId:strip(o.base||o.asset)+'-USDC',asset:o.asset,base:o.base,side:o.side,positionSide:o.positionSide,orderType:o.type,price:o.price||o.triggerPrice,triggerPrice:o.triggerPrice,size:o.quantity}));
-  const trig=ord.filter(o=>isTrig(o.orderType));const tp={};for(const o of trig){const k=o.instId;tp[k]??={tpslId:[],instId:k,tpTriggerPrice:'',slTriggerPrice:''};tp[k].tpslId.push(o.orderId);if(/take_profit/.test(o.orderType))tp[k].tpTriggerPrice=o.triggerPrice;else tp[k].slTriggerPrice=o.triggerPrice;}
-  const tpsl=Object.values(tp).map(x=>({...x,tpslId:x.tpslId.join(',')}));
-  const pos=positions.filter(p=>+p.quantity).map(p=>{const instId=strip(p.base||p.asset)+'-USDC';const t=tp[instId]||{};const q=Math.abs(+p.quantity);
-    return {instId,asset:p.asset,base:p.base,quote:p.quote,positionSide:p.positionSide,positions:String(p.positionSide==='short'?-q:q),averagePrice:p.entryPrice,markPrice:p.markPrice,unrealizedPnl:p.unrealizedPnl,leverage:p.leverage,marginMode:p.marginMode,margin:p.marginUsed,tp:t.tpTriggerPrice||'',sl:t.slTriggerPrice||'',_acct:acct}});
-  return {positions:pos,orders:ord.filter(o=>!isTrig(o.orderType)),tpsl};}
-let pSel=null;
-const P={
-  test:async()=>{const u=await pReq('GET','/users/me');await pAccounts();return {user:!!u,accounts:pAccts.length}},
-  async snapshot(sel){if(!pAccts.length)await pAccounts();if(sel)pSel=sel;if(!pAccts.find(a=>a.id===pSel))pSel=pAccts[0]?.id;if(!pSel)throw new Error('No active Propr challenge or funded account');
-    const live=pAccts.filter(a=>a.id===pSel||!/fail|breach|expired|cancel/i.test(a.status));
-    const all=await Promise.all(live.map(async a=>{const me=a.id===pSel;const [acc,pos,ord,tr]=await Promise.all([me?pReq('GET','/accounts/'+a.id):null,pReq('GET','/accounts/'+a.id+'/positions?status=open&limit=50'),me?pReq('GET','/accounts/'+a.id+'/orders?status=open&limit=100'):{data:[]},me?pReq('GET','/accounts/'+a.id+'/trades?limit=100').catch(()=>({data:[]})):null]);
-      return {a,acc,tr,n:pNorm(a.id,pos.data||[],ord.data||[])}}));
-    const me=all.find(x=>x.a.id===pSel);const acc=me.acc||{};const eq=+(acc.marginBalance??acc.equity??acc.balance??0);const used=me.n.positions.reduce((s,p)=>s+(+p.margin||0),0);const upnl=me.n.positions.reduce((s,p)=>s+(+p.unrealizedPnl||0),0);
-    return {balance:{totalEquity:String(eq),details:[{currency:'USDC',equity:String(eq),available:String(acc.availableBalance??''),frozen:'0',isolatedEquity:String(used)}]},
-      positions:me.n.positions,orders:me.n.orders,tpsl:me.n.tpsl,allPositions:all.flatMap(x=>x.n.positions),accounts:pAccts,selected:pSel,info:pInfo(pSel,acc,me.tr?.data||[],upnl)};},
-  async instruments(){const m=await hl({type:'meta'});return (m.universe||[]).filter(u=>!u.isDelisted).map(u=>({instId:u.name+'-USDC',contractValue:'1',lotSize:String(10**-u.szDecimals),minSize:String(10**-u.szDecimals),maxLeverage:u.maxLeverage}));},
-  async candles(instId,bar){const iv={'1H':'1h','4H':'4h','1D':'1d'}[bar]||bar;const ms={'1m':6e4,'5m':3e5,'15m':9e5,'1h':36e5,'4h':144e5,'1d':864e5}[iv]||9e5;const now=Date.now();
-    const c=await hl({type:'candleSnapshot',req:{coin:instId.split('-')[0],interval:iv,startTime:now-ms*300,endTime:now}});return c.map(x=>[x.t,x.o,x.h,x.l,x.c]);},
-  ord(base,o){const a=base;return {accountId:pSel,intentId:ulid(),exchange:'hyperliquid',productType:'perp',asset:a,base:a,quote:'USDC',...o}},
-  async order(o){const base=o.instId.split('-')[0];
-    try{const mc=await pReq('GET','/accounts/'+pSel+'/margin-config/'+base);if(mc&&mc.configId)await pReq('PUT','/accounts/'+pSel+'/margin-config/'+mc.configId,{exchange:'hyperliquid',asset:base,marginMode:'isolated',leverage:+o.leverage});}
-    catch(e){throw new Error('Could not set 5x isolated on Propr ('+e.message+'); order not sent');}
-    const long=o.side==='buy',ps=long?'long':'short',ex=long?'sell':'buy';
-    const entry=this.ord(base,{type:o.orderType,side:o.side,positionSide:ps,quantity:String(o.size),timeInForce:o.orderType==='market'?'IOC':'GTC',reduceOnly:false,closePosition:false,...(o.orderType==='limit'?{price:String(o.price)}:{})});
-    const sl=this.ord(base,{type:'stop_market',side:ex,positionSide:ps,quantity:String(o.size),triggerPrice:String(o.slTriggerPrice),timeInForce:'GTC',reduceOnly:true,closePosition:true});
-    const tp=o.tpTriggerPrice?[this.ord(base,{type:'take_profit_market',side:ex,positionSide:ps,quantity:String(o.size),triggerPrice:String(o.tpTriggerPrice),timeInForce:'GTC',reduceOnly:true,closePosition:true})]:[];
-    return pReq('POST','/accounts/'+pSel+'/orders',{orders:[entry,sl,...tp]});},
-  async setTpsl(o){const s=await this.snapshot();const base=o.instId.split('-')[0];const p=s.positions.find(x=>x.instId===o.instId);if(!p)throw new Error('Position not found');
-    for(const t of s.tpsl.filter(x=>x.instId===o.instId))for(const id of t.tpslId.split(','))await pReq('POST','/accounts/'+pSel+'/orders/'+id+'/cancel');
-    const q=String(Math.abs(+p.positions)),ps=p.positionSide,side=ps==='long'?'sell':'buy';const L=[];
-    if(o.sl)L.push(this.ord(base,{type:'stop_market',side,positionSide:ps,quantity:q,triggerPrice:String(o.sl),timeInForce:'GTC',reduceOnly:true,closePosition:true}));
-    if(o.tp)L.push(this.ord(base,{type:'take_profit_market',side,positionSide:ps,quantity:q,triggerPrice:String(o.tp),timeInForce:'GTC',reduceOnly:true,closePosition:true}));
-    return L.length?pReq('POST','/accounts/'+pSel+'/orders',{orders:L}):null;},
-  async cancel(o){const ids=String(o.tpslId||o.orderId).split(',');for(const id of ids)await pReq('POST','/accounts/'+pSel+'/orders/'+id+'/cancel');return true;},
-  close(o){const base=o.instId.split('-')[0];return pReq('POST','/accounts/'+pSel+'/orders',{orders:[this.ord(base,{type:'market',side:o.positionSide==='long'?'sell':'buy',positionSide:o.positionSide,quantity:String(Math.abs(+o.positions)),timeInForce:'IOC',reduceOnly:true,closePosition:true})]});}};
-
-// ---------- Coinbase Advanced Trade (CDP JWT ES256/Ed25519, or legacy HMAC key/secret) ----------
 const CB='https://api.coinbase.com';
 function fixPem(s){s=String(s).replace(/\\n/g,'\n').trim();if(/BEGIN/.test(s)&&!/\n/.test(s)){const m=s.match(/^(-----BEGIN [A-Z ]+-----)\s*(.+?)\s*(-----END [A-Z ]+-----)$/);if(m)s=m[1]+'\n'+m[2].replace(/\s+/g,'').match(/.{1,64}/g).join('\n')+'\n'+m[3];}return s;}
 function cbKey(secret){let s=String(secret||'').trim();try{const j=JSON.parse(s);s=j.privateKey||j.private_key||j.secret||s}catch(e){}
@@ -189,53 +94,78 @@ const C={
     return cOk(await cReq('POST','/api/v3/brokerage/orders',{client_order_id:cid(),product_id:o.instId,side:p.positionSide==='long'?'SELL':'BUY',order_configuration:{trigger_bracket_gtc:{base_size:String(Math.abs(+p.positions)),limit_price:String(o.tp),stop_trigger_price:String(o.sl)}}}));},
   async cancel(o){const r=await cReq('POST','/api/v3/brokerage/orders/batch_cancel',{order_ids:String(o.tpslId||o.orderId).split(',')});const f=(r.results||[]).find(x=>!x.success);if(f)throw new Error(f.failure_reason||'cancel failed');return r;},
   close:async o=>cOk(await cReq('POST','/api/v3/brokerage/orders/close_position',{client_order_id:cid(),product_id:o.instId}))};
-const AD={b:B,p:P,c:C};
+const AD={b:B,c:C};
 
 // ---------- mock data for hidden-window tests (no network for account data, no orders) ----------
 const mockPos={b:[{instId:'BTC-USDT',positionSide:'net',positions:'0.5',averagePrice:'67000',markPrice:'67450',unrealizedPnl:'2.25',leverage:'5',marginMode:'isolated',margin:'6.7',tp:'68800',sl:'66400'}],
-  p:[{instId:'ETH-USDC',positionSide:'long',positions:'0.01',averagePrice:'3100',markPrice:'3120',unrealizedPnl:'0.20',leverage:'5',marginMode:'isolated',margin:'6.2',tp:'3260',sl:'3036',_acct:'acctA'}],
   c:[{instId:'BIP-20DEC30-CDE',positionSide:'short',positions:'-1',averagePrice:'67100',markPrice:'67000',unrealizedPnl:'1.00',leverage:'5',marginMode:'isolated',tp:'66000',sl:'67540'}]};
 const mockBal=(cur,eq,av,used)=>({totalEquity:String(eq),details:[{currency:cur,equity:String(eq),available:String(av),frozen:'0',isolatedEquity:String(used)}]});
-const mockAccts=[{id:'acctA',label:'Challenge 10K ·acctA'},{id:'acctB',label:'Funded 25K ·acctB'}];let mockSel='acctA';
 function mockSnap(ex,sel){const pos=mockPos[ex];
   if(ex==='b')return {balance:mockBal('USDT',48.62,36.52,12.10),positions:pos,orders:[{orderId:'9001',instId:'ETH-USDT',side:'buy',orderType:'limit',price:'3150',size:'0.3'}],tpsl:[{tpslId:'7001',instId:'BTC-USDT',tpTriggerPrice:'68800',slTriggerPrice:'66400'}]};
-  if(ex==='p'){if(sel)mockSel=sel;const mine=pos.filter(p=>(p._acct||'acctA')===mockSel);
-    const mi=mockSel==='acctA'?{name:'Turbo 5K',type:'Challenge',size:5000,tier:'Turbo',phase:1,status:'active',eq:4890,bal:4900,upnl:-10,target:5400,targetSrc:'api',progress:0,floor:4850,floorSrc:'derived',trailing:false,ddPct:3,distFloor:40,ddBudget:150,dailyLimit:null,dailySrc:'not in API',usedToday:55,dailyRemaining:null,todayRealized:-45,trades:[{inst:'BTC',side:'long',pnl:12.5,at:new Date().toISOString()},{inst:'ETH',side:'short',pnl:-8.2,at:new Date().toISOString()}],wins:1,losses:1,winRate:50,split:80,payoutAvail:null,payoutEligible:'n/a until funded'}
-      :{name:'Classic 25K',type:'Funded',size:25000,tier:'Classic',phase:null,status:'funded',eq:25140,bal:25140,upnl:0,target:null,targetSrc:'not in API',progress:null,floor:23500,floorSrc:'derived',trailing:false,ddPct:6,distFloor:1640,ddBudget:1500,dailyLimit:1000,dailySrc:'api',usedToday:800,dailyRemaining:200,todayRealized:-800,trades:[],wins:0,losses:0,winRate:null,split:80,payoutAvail:112,payoutEligible:'profit available (eligibility rules not in API)'};
-    return {info:mi,balance:mockSel==='acctA'?mockBal('USDC',10012.4,9800,6.2):mockBal('USDC',25140,25140,0),positions:mine,orders:[],tpsl:mine.filter(p=>p.tp||p.sl).map((p,i)=>({tpslId:'m'+i,instId:p.instId,tpTriggerPrice:p.tp,slTriggerPrice:p.sl})),allPositions:pos,accounts:mockAccts,selected:mockSel};}
   return {balance:mockBal('USD',212.5,180,32.5),cash:{USD:150.25,USDC:62.25},positions:pos,orders:[],tpsl:pos.map((p,i)=>({tpslId:'c'+i,instId:p.instId,tpTriggerPrice:p.tp,slTriggerPrice:p.sl}))};}
 
-function shape(o,p='',out=[],d=0){if(d>5||out.length>400)return out;if(Array.isArray(o)){out.push(p+' : array['+o.length+']');if(o.length)shape(o[0],p+'[0]',out,d+1);return out}
-  if(o&&typeof o==='object'){for(const[k,v]of Object.entries(o))shape(v,p+'.'+k,out,d+1);return out}
-  const show=/name|title|type|tier|status|size|phase|product|label|balance|target|drawdown|loss|split|percent|pct|order|level|kind|plan|program|currency/i.test(p)&&!/id$|Id$|email|user|key|token|hash|address|wallet/i.test(p);
-  out.push(p+' : '+typeof o+(show?' = '+JSON.stringify(o).slice(0,60):''));return out}
-async function dumpShape(file){creds.p=loadCreds('p');const L=[];const g=async u=>{try{return await pReq('GET',u)}catch(e){L.push(u+' ERR '+e.message.slice(0,80));return null}};
-  const a=await g('/challenge-attempts?limit=50');L.push('== /challenge-attempts',...shape(a));const c=await g('/challenges?limit=100');L.push('== /challenges',...shape(c));
-  const id=(a&&(a.data||[])[0]||{}).accountId;if(id){const ac=await g('/accounts/'+id);L.push('== /accounts/{id}',...shape(ac));const tr=await g('/accounts/'+id+'/trades?limit=2');L.push('== trades',...shape(tr));}
-  await pAccounts().catch(e=>L.push('pAccounts ERR '+e.message));for(const x of (a&&a.data||[]))L.push('ATT name='+str(x.challenge&&x.challenge.name)+' slug='+(x.challenge&&x.challenge.slug)+' bal='+(x.challenge&&x.challenge.initialBalance)+' status='+x.status+' acct='+(x.account&&x.account.type)+' phase='+str(x.currentPhase&&x.currentPhase.name)+' phases='+(x.phases||[]).length);for(const x of (c&&c.data||[]))L.push('CH name='+str(x.name)+' slug='+x.slug+' bal='+x.initialBalance+' prod='+str(x.product&&x.product.name)+' phases='+(x.phases||[]).length);L.push('== labels',...pAccts.map(x=>x.label));fs.writeFileSync(file,L.join('\n'));}
+// ---------- closed trade history (exchange API first, local log fallback) ----------
+const logFile=ex=>path.join(app.getPath('userData'),'trades-'+ex+'.json');
+const readLog=ex=>{try{return JSON.parse(fs.readFileSync(logFile(ex),'utf8'))}catch(e){return []}};
+function addLog(ex,t){const l=readLog(ex);l.unshift(t);fs.writeFileSync(logFile(ex),JSON.stringify(l.slice(0,500)));}
+const tr=(o)=>{const net=+o.pnl;return {...o,pnl:net,result:net>0?'WINNER':net<0?'LOSER':'BREAKEVEN'}};
+async function bHistory(){const d=await bSigned('GET','/api/v1/account/positions-history',{limit:'100'});
+  return (d||[]).map(x=>{const en=+x.openAveragePrice,exi=+x.closeAveragePrice,pnl=+(x.realizedPnl||0)+(x.fee&&x.realizedPnl===undefined?+x.fee:0);
+    let dir=String(x.positionSide||'').toLowerCase();if(dir!=='long'&&dir!=='short')dir=(exi-en)*pnl>=0?'long':'short';
+    const sz=Math.abs(+(x.closePositions||x.positions||0));const r=x.realizedPnlRatio!=null?+x.realizedPnlRatio*100:null;
+    return tr({inst:x.instId,dir,entry:en,exit:exi,size:sz,pnl,pct:r,open:+x.createTime,close:+x.updateTime,src:'BloFin positions-history'})});}
+async function cHistory(){if(!Object.keys(cInst).length)await C.instruments().catch(()=>{});
+  const j=await cReq('GET','/api/v3/brokerage/orders/historical/fills?limit=250');const fills=(j.fills||[]).slice().sort((a,b)=>new Date(a.trade_time)-new Date(b.trade_time));
+  const st={},out=[];for(const f of fills){const k=f.product_id,cv=+(cInst[k]?.contractValue||1),q=+f.size*(f.side==='BUY'?1:-1),px=+f.price,fee=+(f.commission||0),t=new Date(f.trade_time).getTime();
+    let s=st[k]||(st[k]={pos:0,avg:0,fee:0,open:t,xq:0,xn:0});let rem=q;
+    if(s.pos&&Math.sign(rem)!==Math.sign(s.pos)){const c=Math.min(Math.abs(rem),Math.abs(s.pos));const ffee=fee*c/Math.abs(q);s.xq+=c;s.xn+=c*px;s.fee+=ffee;
+      s.pos+=Math.sign(rem)*c;rem-=Math.sign(rem)*c;
+      if(Math.abs(s.pos)<1e-12){const dir=q<0?'long':'short',exi=s.xn/s.xq,g=(exi-s.avg)*s.xq*cv*(dir==='long'?1:-1),net=g-s.fee;
+        out.push(tr({inst:k,dir,entry:s.avg,exit:exi,size:s.xq,pnl:net,pct:s.avg?net/(s.avg*s.xq*cv)*100:null,open:s.open,close:t,src:'Coinbase fills'}));s=st[k]={pos:0,avg:0,fee:0,open:t,xq:0,xn:0};}}
+    if(rem){const n=s.pos+rem;s.avg=s.pos?(s.avg*Math.abs(s.pos)+px*Math.abs(rem))/Math.abs(n):px;if(!s.pos)s.open=t;s.pos=n;s.fee+=fee*Math.abs(rem)/Math.abs(q);}}
+  return out.reverse();}
+const now=Date.now(),H=3600e3;
+const mockHist={b:[tr({inst:'SOL-USDT',dir:'long',entry:142.1,exit:145.3,size:1,pnl:3.02,pct:11.2,open:now-30*H,close:now-28*H,src:'mock'}),tr({inst:'BTC-USDT',dir:'short',entry:67900,exit:68150,size:0.01,pnl:-2.61,pct:-9.4,open:now-26*H,close:now-25.5*H,src:'mock'})],
+  c:[tr({inst:'ETP-20DEC30-CDE',dir:'short',entry:3410,exit:3380,size:1,pnl:2.7,pct:3.9,open:now-50*H,close:now-49*H,src:'mock'})]};
+async function history(ex){let api=[],err=null;try{api=MOCK?mockHist[ex]:(ex==='b'?await bHistory():await cHistory())}catch(e){err=e.message}
+  const local=readLog(ex);const seen=new Set(api.map(t=>t.inst+'|'+t.dir+'|'+Math.round(t.close/60000)));
+  const extra=(err||!api.length||MOCK)?local.filter(t=>!api.some(a=>a.inst===t.inst&&a.dir===t.dir&&Math.abs(a.close-t.close)<5*60000)).map(t=>tr({...t,src:'local log'})):[];
+  const list=api.concat(extra).sort((a,b)=>b.close-a.close);const w=list.filter(t=>t.pnl>0).length,l=list.filter(t=>t.pnl<0).length;
+  return {list,totals:{wins:w,losses:l,winRate:w+l?w/(w+l)*100:null,pnl:list.reduce((a,t)=>a+t.pnl,0)},source:err?('local log (API: '+err.slice(0,80)+')'):(api.length?(api[0].src+(extra.length?' + local log':'')):'local log')};}
+function fmtOf(text,file){const t=String(text).replace(/^\uFEFF/,'');try{const j=JSON.parse(t);const ks=[];const w=o=>{for(const[k,v]of Object.entries(o||{}))v&&typeof v==='object'?w(v):ks.push(k)};w(j);return 'JSON with keys '+ks.slice(0,8).join(', ')}catch(e){}
+  const pem=/-----BEGIN [A-Z ]+-----/.test(t)?' (private key as PEM block)':'';const labels=[],bare=[];
+  for(let l of t.replace(/-----BEGIN[\s\S]+?-----END [A-Z ]+-----/g,'').split(/\r?\n/)){l=l.trim().replace(/^export\s+/,'');if(!l||/^#|^\/\//.test(l))continue;const m=l.match(/^([A-Za-z _\-.]{2,40}?)\s*[:=]\s*\S/);if(m)labels.push(m[1].trim());else if(!/\s/.test(l))bare.push(1);}
+  if(labels.length)return (/\.env$/i.test(file)?'.env variables ':'labelled lines ')+labels.map(x=>'"'+x+'"').join(', ')+pem;
+  return bare.length+' bare lines in order key, secret'+(bare.length>2?', passphrase':'')+pem;}
+
 function register(){
   for(const ex of EXS)creds[ex]=loadCreds(ex);
-  const wrap=f=>async(e,ex,...a)=>{try{ck(ex);return {ok:true,data:await f(ex,...a)}}catch(err){return {ok:false,error:String(err.message||err).replace(/pk_live_\w+/g,'pk_live_…')}}};
+  const wrap=f=>async(e,ex,...a)=>{try{ck(ex);return {ok:true,data:await f(ex,...a)}}catch(err){return {ok:false,error:String(err.message||err)}}};
   ipcMain.handle('tr:parse-file',async(e,ex)=>{ck(ex);const w=require('electron').BrowserWindow.fromWebContents(e.sender);const tf=process.env['CUSTOM_HERMES_TESTFILE_'+ex.toUpperCase()]||process.env.CUSTOM_HERMES_TESTFILE;
     const {canceled,filePaths}=tf?{canceled:false,filePaths:[tf]}:await dialog.showOpenDialog(w,{title:'Select '+NAME[ex]+' API file',properties:['openFile'],filters:[{name:'Credential files',extensions:['txt','env','json','pem','key','yaml','yml','md']},{name:'All files',extensions:['*']}]});
     if(canceled||!filePaths[0])return {ok:false,cancelled:true};
     try{const st=fs.statSync(filePaths[0]);if(st.size>256*1024)return {ok:false,error:'File too large for a key file'};
       const p=parseCredText(fs.readFileSync(filePaths[0],'utf8'),ex);const found=FIELDS[ex].filter(k=>p[k]);
-      return {ok:found.length>0,fields:p,found,file:path.basename(filePaths[0]),error:found.length?null:(ex==='p'?'No pk_live_ key found':'No API key or secret found')};}catch(err){return {ok:false,error:err.message}}});
+      const ok=found.length>0;let cron=null;
+      if(ok){const fmt=fmtOf(fs.readFileSync(filePaths[0],'utf8'),filePaths[0]);
+        if(TESTRUN&&!process.env.CUSTOM_HERMES_HOME)cron={skipped:'test mode without a test cron store'};
+        else{cron={pending:true};const snd=e.sender;require('./cronSync').sync(ex,path.resolve(filePaths[0]),fmt).catch(err=>({error:String(err.message).slice(0,160)})).then(c=>{try{snd.send('tr:cron',ex,c)}catch(x){}});}}
+      return {ok,fields:p,found,file:path.basename(filePaths[0]),cron,error:ok?null:'No API key or secret found'};}catch(err){return {ok:false,error:err.message}}});
   ipcMain.handle('tr:status',(e,ex)=>{ck(ex);const c=creds[ex];return {saved:!!c,mode:ex==='b'?(c?.mode||'demo'):'live',keyMask:mask(c?.apiKey),mock:MOCK,encryption:safeStorage.isEncryptionAvailable(),cur:CUR[ex],name:NAME[ex]}});
   ipcMain.handle('tr:save',(e,ex,c)=>{ck(ex);const o=creds[ex]||{};const v=k=>String(c[k]||'').trim()||o[k];let n;
-    if(ex==='p'){n={apiKey:v('apiKey')};if(!/^pk_live_/.test(n.apiKey||''))return {ok:false,error:'Propr key must start with pk_live_'};}
-    else if(ex==='c'){n={apiKey:v('apiKey'),secret:v('secret')};if(!n.apiKey||!n.secret)return {ok:false,error:'API key and secret are both required'};
+    if(ex==='c'){n={apiKey:v('apiKey'),secret:v('secret')};if(!n.apiKey||!n.secret)return {ok:false,error:'API key and secret are both required'};
       try{if(/BEGIN/.test(n.secret))n.secret=fixPem(n.secret);cbKey(n.secret)}catch(err){return {ok:false,error:'Private key could not be read (PEM/Ed25519)'}}}
     else{n={apiKey:v('apiKey'),secret:v('secret'),passphrase:v('passphrase'),mode:c.mode==='live'?'live':'demo'};if(!n.apiKey||!n.secret||!n.passphrase)return {ok:false,error:'API key, secret and passphrase are all required'};}
-    try{saveCreds(ex,n);creds[ex]=n;if(ex==='p')pAccts=[];return {ok:true,keyMask:mask(n.apiKey)}}catch(err){return {ok:false,error:err.message}}});
-  ipcMain.handle('tr:forget',(e,ex)=>{ck(ex);try{fs.unlinkSync(credFile(ex))}catch(x){}creds[ex]=null;if(ex==='p')pAccts=[];return {ok:true}});
+    try{saveCreds(ex,n);creds[ex]=n;return {ok:true,keyMask:mask(n.apiKey)}}catch(err){return {ok:false,error:err.message}}});
+  ipcMain.handle('tr:forget',(e,ex)=>{ck(ex);try{fs.unlinkSync(credFile(ex))}catch(x){}creds[ex]=null;return {ok:true}});
   ipcMain.handle('tr:prefs',(e,p)=>{let cur={};try{cur=JSON.parse(fs.readFileSync(prefFile(),'utf8'))}catch(x){}if(p){cur={...cur,...p};fs.writeFileSync(prefFile(),JSON.stringify(cur))}return cur;});
   ipcMain.handle('tr:test',wrap(async ex=>MOCK?{mock:true}:AD[ex].test()));
   ipcMain.handle('tr:snapshot',wrap(async(ex,sel)=>MOCK?mockSnap(ex,sel):AD[ex].snapshot(sel)));
   ipcMain.handle('tr:mock-positions',(e,ex,list)=>{ck(ex);if(MOCK)mockPos[ex]=list;return MOCK;});
   ipcMain.handle('tr:instruments',wrap(async ex=>AD[ex].instruments()));
   ipcMain.handle('tr:candles',wrap(async(ex,i,b)=>AD[ex].candles(i,b)));
+  ipcMain.handle('tr:history',wrap(async ex=>history(ex)));
+  ipcMain.handle('tr:log-close',(e,ex,t)=>{ck(ex);const x=tr({inst:String(t.inst),dir:t.dir==='short'?'short':'long',entry:+t.entry||0,exit:+t.exit||0,size:+t.size||0,pnl:+t.pnl||0,pct:t.pct==null?null:+t.pct,open:+t.open||Date.now(),close:Date.now(),src:'local log'});addLog(ex,x);return x;});
   const guard=()=>{if(MOCK)throw new Error('Mock mode: no orders are sent');};
   ipcMain.handle('tr:order',wrap(async(ex,o)=>{guard();if(!o.slTriggerPrice)throw new Error('Stop loss is mandatory');return AD[ex].order(o)}));
   ipcMain.handle('tr:set-tpsl',wrap(async(ex,o)=>{guard();return AD[ex].setTpsl(o)}));
@@ -243,4 +173,4 @@ function register(){
   ipcMain.handle('tr:close',wrap(async(ex,o)=>{guard();return AD[ex].close(o)}));
   ipcMain.handle('tr:share',(e,dataUrl)=>{const img=nativeImage.createFromDataURL(String(dataUrl));if(img.isEmpty())return {ok:false};if(!process.env.CUSTOM_HERMES_TEST)clipboard.writeImage(img);return {ok:true,w:img.getSize().width};});
 }
-module.exports={dumpShape,register,parseCredText,_pInfo:pInfo,_cbJwt:cbJwt,_fixPem:fixPem};
+module.exports={register,parseCredText,_cbJwt:cbJwt,_fixPem:fixPem};

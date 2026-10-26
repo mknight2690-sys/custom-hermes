@@ -103,3 +103,9 @@ button[class~="bg-midground"] *{color:#fff !important}
 #app-sidebar svg{stroke:currentColor !important}
 /* v1.1.0: Hermes per-item hover overlay (span[aria-hidden].bg-midground) was forced to opacity:1 on every item by the sidebar-hover label rule; remove it, keep single-item hover bg above */
 #app-sidebar a > span[aria-hidden="true"]{display:none !important}
+
+/* Custom Hermes: dashboard must fit the window width (vertical scroll only) */
+html,body{overflow-x:hidden !important;max-width:100vw !important}
+pre,code{white-space:pre-wrap !important;overflow-wrap:anywhere !important}
+img,svg,canvas,video,table{max-width:100% !important}
+table{table-layout:fixed}td,th{overflow-wrap:anywhere}

@@ -193,9 +193,11 @@ MIT
 
 ## Trading tabs (v1.1.0)
 
-- **B Trading** (BloFin), **P Trading** (Propr), **C Trading** (Coinbase): account, positions with TP/SL edit, order form with projected PnL, open orders + TP/SL, chart with reset, PnL share badge, winner/loser/breakeven voice.
+- **B Trading** (BloFin) and **C Trading** (Coinbase): account, positions with TP/SL edit, order form with projected PnL, open orders + TP/SL, chart with reset, PnL share badge, winner/loser/breakeven voice.
 - Rules enforced: margin = max(1.50, 10% equity), R:R >= 2.5, 5x isolated, stop mandatory.
 - Per-exchange API file picker/parser (Coinbase: no passphrase; USD/USDC shown).
-- P Trading sub-tabs per challenge/funded account, labelled with Propr's own names (e.g. 'Free Trial', '5K Starter 1-Step Turbo Challenge'), with drawdown floor, daily loss left, target, win rate and payout (derived values marked).
+- **Closed Trade History** on B and C: ticker, direction, entry, exit, size, PnL $ and %, open/close time, duration, WINNER/LOSER badge (net of fees), totals (wins, losses, win rate, total PnL). Exchange API first, local log fallback. Voice winner/loser calls use the same record.
+- **Cron prompt sync**: picking a credential file in B or C rewrites the matching Hermes cron prompts with a managed [CREDENTIALS] block (file path + format, never key values; BloFin = key/secret/passphrase, Coinbase = key name/private key, no passphrase), replaces stale paths, backs up cron/jobs.json first, and keeps paused jobs paused. Status line: "cron prompts updated for N jobs".
+- **Responsive layout**: no horizontal scrolling on any tab (tested at 900/1100/1400 px).
 - Updates: no in-app updater; reinstall the latest Setup exe (silent reinstall relaunches the app).
 

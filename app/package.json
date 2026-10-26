@@ -18,6 +18,7 @@
    "shell.html",
    "theme.css",
    "tradingMain.js",
+   "cronSync.js",
    "trading.js",
    "trading.css",
    "vendor/**"
