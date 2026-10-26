@@ -14,6 +14,12 @@ free-model **autoselector** (OpenAI-compatible proxy, model `auto`), kept alive
 | Supervisor (`supervisor.ps1`, checks every 15 s) | scheduled task `GrokReplica` | - |
 | Desktop app (`app/`) | installed per-user, Desktop + Start menu shortcut | - |
 
+## Download
+
+**[Download Grok Replica Setup 1.0.4 for Windows](https://github.com/mknight2690-sys/grok-replica/releases/latest)** (78.6 MB, unsigned: on SmartScreen click *More info* then *Run anyway*).
+
+Install the app only: run `Grok-Replica-Setup-1.0.4.exe`; it still needs the services from the AI-agent install below (Hermes + autoselector + supervisor) to show the dashboard.
+
 ---
 
 ## For AI agents: install top to bottom

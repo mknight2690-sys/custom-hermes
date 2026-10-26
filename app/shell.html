@@ -1,26 +1,30 @@
 <!doctype html><html><head><meta charset="utf-8"><style>
-*{box-sizing:border-box}body{margin:0;background:#0b0d12;color:#e6e8ef;font-family:'Segoe UI Variable','Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-#bar{height:38px;display:flex;align-items:center;-webkit-app-region:drag;background:linear-gradient(90deg,#11141c,#151a26);border-bottom:1px solid #1f2533;padding-left:14px}
-#bar b{font-weight:600;letter-spacing:.4px}#bar .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#7c5cff,#2fd4ff);margin-right:10px;box-shadow:0 0 10px #7c5cff}
+*{box-sizing:border-box}body{margin:0;background:#070a14;color:#e6e8ef;font-family:'Segoe UI Variable','Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#bar{height:38px;display:flex;align-items:center;-webkit-app-region:drag;background:linear-gradient(90deg,#0a0e1c,#0d1224);border-bottom:1px solid #1f2533;padding-left:14px}
+#bar b{font-weight:600;letter-spacing:.4px}#bar .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#22d3ee,#8b5cf6);margin-right:10px;box-shadow:0 0 10px #8b5cf6}
 #bar .sp{flex:1}#bar label,#bar button{-webkit-app-region:no-drag}
 #bar label{font-size:12px;color:#8a93a8;margin-right:12px}
 #bar button{width:46px;height:38px;border:0;background:none;color:#aab;font-size:14px;cursor:pointer}#bar button:hover{background:#1f2533}#bar #x:hover{background:#e5484d;color:#fff}
 #tools button{width:auto;padding:0 10px;font-size:12px}
-webview{flex:1;border:0}#load{position:absolute;top:38px;inset-inline:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0b0d12;gap:16px}
-.sp2{width:42px;height:42px;border-radius:50%;border:3px solid #1f2533;border-top-color:#7c5cff;animation:r 1s linear infinite}@keyframes r{to{transform:rotate(360deg)}}
+webview{flex:1;border:0}#load{position:absolute;top:38px;inset-inline:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#070a14;gap:16px}
+.sp2{width:42px;height:42px;border-radius:50%;border:3px solid #1f2533;border-top-color:#8b5cf6;animation:r 1s linear infinite}@keyframes r{to{transform:rotate(360deg)}}
 </style></head><body>
 <div id="bar"><span class="dot"></span><b>Grok Replica</b><span id="tools" style="margin-left:18px"><button onclick="wv.goBack()">&#8592;</button><button onclick="wv.reload()">&#10227;</button><button onclick="wv.loadURL('http://127.0.0.1:9120/')">Home</button></span>
 <span class="sp"></span><label><input type="checkbox" id="lg"> Launch at login</label>
 <button onclick="ipc.send('win','min')">&#8211;</button><button onclick="ipc.send('win','max')">&#9744;</button><button id="x" onclick="ipc.send('win','close')">&#10005;</button></div>
 <webview id="wv" src="about:blank"></webview>
-<div id="load"><div class="sp2"></div><div id="msg">Starting replica services…</div></div>
+<div id="load"><div class="sp2" id="sp"></div><div id="msg">Starting replica services…</div></div>
 <script>
-const ipc=require('electron').ipcRenderer;const wv=document.getElementById('wv');
+const ipc=require('electron').ipcRenderer;const wv=document.getElementById('wv');const URL0='http://127.0.0.1:9120/';
 ipc.invoke('login').then(v=>lg.checked=v);lg.onchange=()=>ipc.invoke('login',lg.checked);
-let css='';ipc.invoke('css').then(c=>css=c);
-wv.addEventListener('dom-ready',()=>wv.insertCSS(css));
-wv.addEventListener('did-finish-load',()=>{if(wv.getURL().startsWith('http'))load.style.display='none'});
-wv.addEventListener('did-fail-load',e=>{if(e.errorCode!==-3){load.style.display='flex';msg.textContent='Reconnecting…';setTimeout(go,3000)}});
-async function go(){const ok=await ipc.invoke('ensure');if(ok)wv.loadURL('http://127.0.0.1:9120/');else{msg.textContent='Services not responding. Retrying…';setTimeout(go,3000)}}
+let css='';ipc.invoke('css').then(c=>css=c);let loaded=false,busy=false;
+const log=m=>ipc.send('log',m);
+wv.addEventListener('dom-ready',()=>{wv.insertCSS(css);});
+wv.addEventListener('did-finish-load',()=>{if(wv.getURL().startsWith('http')){loaded=true;load.style.display='none';log('loaded '+wv.getURL());}});
+wv.addEventListener('did-fail-load',e=>{log('fail '+e.errorCode+' main='+e.isMainFrame+' '+e.validatedURL);
+ if(!e.isMainFrame||e.errorCode===-3||loaded)return;fail('Dashboard failed to load ('+e.errorDescription+').');});
+function fail(why){busy=false;load.style.display='flex';sp.style.display='none';msg.innerHTML=why+'<br><br><button id="rt" style="padding:8px 18px;border:0;border-radius:10px;background:linear-gradient(135deg,#22d3ee,#8b5cf6);color:#fff;font-weight:600;cursor:pointer">Retry</button>';rt.onclick=go;}
+async function go(){if(busy)return;busy=true;loaded=false;load.style.display='flex';sp.style.display='block';msg.textContent='Starting replica services…';
+ const r=await ipc.invoke('ensure');if(r.ok){busy=false;wv.loadURL(URL0);}else fail(r.why);}
 go();
 </script></body></html>
