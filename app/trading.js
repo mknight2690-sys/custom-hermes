@@ -9,13 +9,14 @@ const voice={muted:false,q:[],speaking:false,base:null,gone:{},
  say(t){if(this.muted)return;if(this.q.length>=4)this.q.shift();this.q.push(t);this.pump()},
  pump(){if(this.speaking||!this.q.length)return;const t=this.q.shift();this.speaking=true;
    const done=()=>{this.speaking=false;setTimeout(()=>this.pump(),250)};ipc.invoke('tr:speak',t).then(done,done);},
- rebase(){this.base=null;this.gone={};this.q=[];ipc.send('tr:speakstop');this.speaking=false},
+ rebase(){this.base=null;this.gone={};this.pnl={};this.q=[];ipc.send('tr:speakstop');this.speaking=false},
  key:p=>{const sz=+p.positions;const side=p.positionSide&&p.positionSide!=='net'?p.positionSide:(sz>=0?'long':'short');return p.instId+'|'+side},
  label:k=>{const[i,s]=k.split('|');return i.split('-')[0]+' '+s},
- update(list){const now=new Set((list||[]).filter(p=>+p.positions!==0).map(this.key));
+ pnl:{},res(k){const v=this.pnl[k];return v===undefined||isNaN(v)?'':v>0?', winner':v<0?', loser':', breakeven'},
+ update(list){const live=(list||[]).filter(p=>+p.positions!==0);for(const p of live)this.pnl[this.key(p)]=parseFloat(p.unrealizedPnl);const now=new Set(live.map(this.key));
   if(this.base===null){this.base=now;return}
   for(const k of now){if(!this.base.has(k)){this.say(this.label(k)+' opened');act(this.label(k)+' opened')}delete this.gone[k]}
-  for(const k of this.base){if(!now.has(k)){this.gone[k]=(this.gone[k]||0)+1;if(this.gone[k]>=2){this.say(this.label(k)+' closed');act(this.label(k)+' closed');delete this.gone[k]}else now.add(k)}}
+  for(const k of this.base){if(!now.has(k)){this.gone[k]=(this.gone[k]||0)+1;if(this.gone[k]>=2){const m=this.label(k)+' closed'+this.res(k);this.say(m);act(m);delete this.gone[k];delete this.pnl[k]}else now.add(k)}}
   this.base=now;}};
 window.__voice=voice;
 // ---------- connection panel ----------
