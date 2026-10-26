@@ -58,13 +58,13 @@ const ipc=require('electron').ipcRenderer;const wv=document.getElementById('wv')
 ipc.invoke('login').then(v=>lg.checked=v);lg.onchange=()=>ipc.invoke('login',lg.checked);
 let css='';ipc.invoke('css').then(c=>css=c);let loaded=false,busy=false;
 const log=m=>ipc.send('log',m);
-wv.addEventListener('dom-ready',()=>{wv.insertCSS(css);});
+let wvReady=false;wv.addEventListener('dom-ready',()=>{wvReady=true;wv.insertCSS(css);});
 wv.addEventListener('did-finish-load',()=>{if(wv.getURL().startsWith('http')){loaded=true;load.style.display='none';log('loaded '+wv.getURL());}});
 wv.addEventListener('did-fail-load',e=>{log('fail '+e.errorCode+' main='+e.isMainFrame+' '+e.validatedURL);
  if(!e.isMainFrame||e.errorCode===-3||loaded)return;fail('Dashboard failed to load ('+e.errorDescription+').');});
 function fail(why){busy=false;load.style.display='flex';sp.style.display='none';msg.innerHTML=why+'<br><br><button id="rt" style="padding:8px 18px;border:0;border-radius:10px;background:linear-gradient(135deg,#22d3ee,#8b5cf6);color:#fff;font-weight:600;cursor:pointer">Retry</button>';rt.onclick=go;}
 async function go(){if(busy)return;busy=true;loaded=false;load.style.display='flex';sp.style.display='block';msg.textContent='Starting Custom Hermes services…';
- const r=await ipc.invoke('ensure');if(r.ok){busy=false;wv.loadURL(URL0);}else fail(r.why);}
+ const r=await ipc.invoke('ensure');if(r.ok){busy=false;log('ensure ok, loading');let n=0;const tryLoad=()=>{if(loaded)return;n++;try{wv.loadURL(URL0).catch(e=>{if(n<30&&!loaded)setTimeout(tryLoad,1000)});}catch(e){if(n===1)log('webview not ready yet: '+e.message);if(n<30)setTimeout(tryLoad,1000);else fail('Dashboard view did not attach.');}};tryLoad();}else{log('ensure failed: '+r.why);fail(r.why);}}
 go();
 </script><script src="vendor/lwc.js"></script><script src="trading.js"></script>
 <script>document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));const t=b.dataset.tab==='trade';
