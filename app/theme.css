@@ -26,8 +26,8 @@ pre,code,kbd,samp,.font-mono,textarea[class*="mono"]{font-family:var(--font-mono
 #app-sidebar{width:68px !important;min-width:68px;transition:width .28s cubic-bezier(.23,1,.32,1),box-shadow .28s !important;background:rgba(9,13,26,.82) !important;backdrop-filter:blur(18px);border-right:1px solid var(--gr-line) !important;overflow-x:hidden !important;z-index:60}
 #app-sidebar:hover{width:236px !important;box-shadow:12px 0 40px rgba(0,0,0,.45)}
 #app-sidebar *{white-space:nowrap}
-#app-sidebar:not(:hover) a span,#app-sidebar:not(:hover) h1,#app-sidebar:not(:hover) h2,#app-sidebar:not(:hover) h3,#app-sidebar:not(:hover) [class*="text-xs"],#app-sidebar:not(:hover) [class*="text-[0.6"],#app-sidebar:not(:hover) [class*="text-[0.7"]{opacity:0;transition:opacity .15s}
-#app-sidebar:hover a span,#app-sidebar:hover [class*="text-xs"]{opacity:1;transition:opacity .2s .08s}
+#app-sidebar:not(:hover) a span:not([aria-hidden]),#app-sidebar:not(:hover) h1,#app-sidebar:not(:hover) h2,#app-sidebar:not(:hover) h3,#app-sidebar:not(:hover) [class*="text-xs"],#app-sidebar:not(:hover) [class*="text-[0.6"],#app-sidebar:not(:hover) [class*="text-[0.7"]{opacity:0;transition:opacity .15s}
+#app-sidebar:hover a span:not([aria-hidden]),#app-sidebar:hover [class*="text-xs"]{opacity:1;transition:opacity .2s .08s}
 }
 #app-sidebar > div:first-child{height:56px}
 #app-sidebar > div:first-child span{font-size:0 !important}
@@ -101,3 +101,5 @@ button[class~="bg-midground"] *{color:#fff !important}
 #app-sidebar a[class~="bg-midground"],#app-sidebar a[aria-current],#app-sidebar a[class~="text-background"],#app-sidebar a[data-active="true"]{background:rgba(139,92,246,.24) !important;color:#ffffff !important;font-weight:700 !important}
 #app-sidebar a[class~="bg-midground"] *,#app-sidebar a[aria-current] *,#app-sidebar a[class~="text-background"] *{color:#ffffff !important;background:transparent !important;font-weight:700 !important}
 #app-sidebar svg{stroke:currentColor !important}
+/* v1.1.0: Hermes per-item hover overlay (span[aria-hidden].bg-midground) was forced to opacity:1 on every item by the sidebar-hover label rule; remove it, keep single-item hover bg above */
+#app-sidebar a > span[aria-hidden="true"]{display:none !important}

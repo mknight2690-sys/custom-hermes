@@ -7,9 +7,9 @@ const setMsg=(id,t,c)=>{$(id).textContent=t||'';$(id).className='msg '+(c||'')};
 // ---------- voice ----------
 const voice={muted:false,q:[],speaking:false,base:null,gone:{},
  say(t){if(this.muted)return;if(this.q.length>=4)this.q.shift();this.q.push(t);this.pump()},
- pump(){if(this.speaking||!this.q.length)return;const u=new SpeechSynthesisUtterance(this.q.shift());u.rate=1.05;this.speaking=true;
-   const done=()=>{this.speaking=false;setTimeout(()=>this.pump(),250)};u.onend=done;u.onerror=done;speechSynthesis.speak(u);},
- rebase(){this.base=null;this.gone={};this.q=[];try{speechSynthesis.cancel()}catch(e){}this.speaking=false},
+ pump(){if(this.speaking||!this.q.length)return;const t=this.q.shift();this.speaking=true;
+   const done=()=>{this.speaking=false;setTimeout(()=>this.pump(),250)};ipc.invoke('tr:speak',t).then(done,done);},
+ rebase(){this.base=null;this.gone={};this.q=[];ipc.send('tr:speakstop');this.speaking=false},
  key:p=>{const sz=+p.positions;const side=p.positionSide&&p.positionSide!=='net'?p.positionSide:(sz>=0?'long':'short');return p.instId+'|'+side},
  label:k=>{const[i,s]=k.split('|');return i.split('-')[0]+' '+s},
  update(list){const now=new Set((list||[]).filter(p=>+p.positions!==0).map(this.key));
@@ -31,7 +31,7 @@ $('saveCreds').onclick=async()=>{const r=await ipc.invoke('tr:save',{apiKey:$('f
  if(r.ok){['fKey','fSecret','fPass'].forEach(i=>{$(i).value='';$(i).placeholder='saved '+(i==='fKey'?r.keyMask:'••••')});setMsg('connMsg','Saved encrypted on this PC ('+mode+').','ok');voice.rebase();connect();}else setMsg('connMsg',r.error,'err');};
 $('testConn').onclick=async()=>{setMsg('connMsg','Testing…');const r=await ipc.invoke('tr:test');setMsg('connMsg',r.ok?'Connected. Balance call succeeded.':r.error,r.ok?'ok':'err');};
 $('forget').onclick=async()=>{await ipc.invoke('tr:forget');connected=false;voice.rebase();$('connTag').textContent='not connected';setMsg('connMsg','Keys removed from this PC.');};
-const setMute=m=>{voice.muted=m;$('muteBtn').textContent=m?'🔇 Voice muted':'🔊 Voice on';if(m)try{speechSynthesis.cancel()}catch(e){}};
+const setMute=m=>{voice.muted=m;$('muteBtn').textContent=m?'🔇 Voice muted':'🔊 Voice on';if(m)ipc.send('tr:speakstop');};
 $('muteBtn').onclick=()=>{setMute(!voice.muted);ipc.invoke('tr:prefs',{muted:voice.muted})};
 // ---------- account polling ----------
 async function connect(){const st=await ipc.invoke('tr:status');setMode(st.mode);
