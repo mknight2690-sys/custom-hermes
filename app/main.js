@@ -18,7 +18,7 @@ const ic=f=>{const a=path.join(process.resourcesPath,'icons',f),b=path.join(__di
 const icon=nativeImage.createFromPath(ic('icon.ico'));const trayIcon=nativeImage.createFromPath(ic('tray.ico')).isEmpty()?nativeImage.createFromPath(ic('tray32.png')):nativeImage.createFromPath(ic('tray.ico'));
 function create(){win=new BrowserWindow({width:1400,height:900,minWidth:900,minHeight:600,frame:false,show:!TEST,backgroundColor:'#0b0d12',icon,
  webPreferences:{webviewTag:true,nodeIntegration:true,contextIsolation:false,backgroundThrottling:false}});
- win.loadFile(path.join(__dirname,'shell.html'));
+ const SILENT=TEST||!!process.env.CUSTOM_HERMES_MOCK||!!process.env.CUSTOM_HERMES_TEST||app.commandLine.hasSwitch('user-data-dir')||app.commandLine.hasSwitch('remote-debugging-port');if(SILENT)win.webContents.on('dom-ready',()=>win.webContents.executeJavaScript('window.__CH_SILENT=true;speechSynthesis.speak=()=>{};1').catch(()=>{}));win.loadFile(path.join(__dirname,'shell.html'));
  win.webContents.setBackgroundThrottling(false);win.on('close',e=>{if(!quitting){e.preventDefault();win.hide();}});}
 app.on('second-instance',()=>{if(win){win.show();win.focus();}});
 ipcMain.handle('ensure',ensure);let spk=null;ipcMain.handle('tr:speak',(e,t)=>{t=String(t).replace(/[^A-Za-z0-9 .,-]/g,'').slice(0,120);L('voice: '+t+(win&&!win.isVisible()?' (hidden)':''));if(TEST)return true;

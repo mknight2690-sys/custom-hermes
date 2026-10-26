@@ -18,7 +18,7 @@
 .trading .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.trading .chip{font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(34,211,238,.12);color:#a5f3fc;border:1px solid rgba(34,211,238,.25)}
 .trading .chip.miss{background:rgba(244,63,94,.1);color:#fecdd3;border-color:rgba(244,63,94,.25)}
 .trading .msg{font-size:12px;margin-top:8px;color:#9aa4c4;min-height:16px}.trading .ok{color:#6ee7b7}.trading .err{color:#fda4af}
-.trading .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.trading .stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .trading .stat{padding:12px 14px}.trading .stat div{font-size:11px;color:#8f9bc0}.trading .stat b{display:block;font-size:20px;margin-top:4px;font-weight:700}
 .trading table{width:100%;border-collapse:collapse;font-size:12.5px}.trading th{text-align:left;color:#8f9bc0;font-weight:600;font-size:11px;padding:6px 8px;border-bottom:1px solid rgba(140,160,255,.14)}
 .trading td{padding:7px 8px;border-bottom:1px solid rgba(140,160,255,.08)}.trading tr:hover td{background:rgba(125,160,255,.05)}
@@ -58,3 +58,6 @@ html,body{overflow-x:hidden;max-width:100%}
 .trading .wl.win{background:rgba(16,185,129,.2);color:#6ee7b7;border:1px solid rgba(16,185,129,.45)}.trading .wl.lose{background:rgba(244,63,94,.18);color:#fda4af;border:1px solid rgba(244,63,94,.45)}
 
 .trading #chart,.trading #chart *{min-width:revert}.trading #chart table{table-layout:auto;display:table}
+
+.trading #posBody tr,.trading #ordBody tr,.trading #histBody tr{cursor:pointer}
+.trading .barBtns{display:inline-flex;flex-wrap:wrap;gap:4px;flex:0 1 auto;min-width:0}.trading .barBtns .b{padding:4px 8px;font-size:11.5px;white-space:nowrap}.trading .barBtns .b.on{background:linear-gradient(135deg,#22d3ee,#8b5cf6);color:#0b0d12;border-color:transparent;font-weight:600}

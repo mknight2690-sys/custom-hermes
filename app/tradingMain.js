@@ -141,7 +141,7 @@ function fmtOf(text,file){const t=String(text).replace(/^\uFEFF/,'');try{const j
 function register(){
   for(const ex of EXS)creds[ex]=loadCreds(ex);
   const wrap=f=>async(e,ex,...a)=>{try{ck(ex);return {ok:true,data:await f(ex,...a)}}catch(err){return {ok:false,error:String(err.message||err)}}};
-  ipcMain.handle('tr:parse-file',async(e,ex)=>{ck(ex);const w=require('electron').BrowserWindow.fromWebContents(e.sender);const tf=process.env['CUSTOM_HERMES_TESTFILE_'+ex.toUpperCase()]||process.env.CUSTOM_HERMES_TESTFILE;
+  ipcMain.handle('tr:parse-file',async(e,ex)=>{ck(ex);const w=require('electron').BrowserWindow.fromWebContents(e.sender);const tf=process.env['CUSTOM_HERMES_TESTFILE_'+ex.toUpperCase()]||process.env.CUSTOM_HERMES_TESTFILE;if(!tf&&(!w||!w.isVisible()||!w.isFocused()))return {ok:false,cancelled:true};
     const {canceled,filePaths}=tf?{canceled:false,filePaths:[tf]}:await dialog.showOpenDialog(w,{title:'Select '+NAME[ex]+' API file',properties:['openFile'],filters:[{name:'Credential files',extensions:['txt','env','json','pem','key','yaml','yml','md']},{name:'All files',extensions:['*']}]});
     if(canceled||!filePaths[0])return {ok:false,cancelled:true};
     try{const st=fs.statSync(filePaths[0]);if(st.size>256*1024)return {ok:false,error:'File too large for a key file'};

@@ -38,9 +38,9 @@ webview{flex:1;border:0}#load{position:absolute;top:38px;inset-inline:0;bottom:0
  </div>
 </div>
 <div>
- <div class="stats"><div class="card stat"><div>Equity</div><b id="sEq">–</b><div id="sEqSub" style="font-size:10.5px;margin-top:3px"></div></div><div class="card stat"><div>Available</div><b id="sAv">–</b></div><div class="card stat"><div>Margin used</div><b id="sMu">–</b></div><div class="card stat"><div>Unrealized PnL</div><b id="sPnl">–</b></div></div>
+ <div class="stats"><div class="card stat"><div>Equity</div><b id="sEq">–</b><div id="sEqSub" style="font-size:10.5px;margin-top:3px"></div></div><div class="card stat"><div>Available</div><b id="sAv">–</b></div><div class="card stat"><div>Margin used</div><b id="sMu">–</b></div><div class="card stat"><div>Open positions</div><b id="sPos">-</b></div><div class="card stat"><div>Unrealized PnL</div><b id="sPnl">–</b></div></div>
  <div class="card"><div class="row" style="margin-bottom:10px"><div class="instbox" style="flex:2"><input id="instSearch" placeholder="Search instrument (e.g. BTC)" value="BTC-USDT"><div id="instList"></div></div>
-  <select id="barSel" style="flex:0 0 90px"><option>1m</option><option>5m</option><option selected>15m</option><option>1H</option><option>4H</option><option>1D</option></select><b id="lastPx" style="flex:0 0 120px;text-align:right;font-size:18px">–</b></div>
+  <span id="barBtns" class="barBtns"><button class="b" data-bar="5m">5 min</button><button class="b" data-bar="15m">15 min</button><button class="b" data-bar="1H">1 hr</button><button class="b" data-bar="4H">4 hr</button><button class="b" data-bar="1D">1 day</button></span><b id="lastPx" style="flex:0 0 120px;text-align:right;font-size:18px">–</b></div>
   <div id="chartWrap"><div id="chart"></div><button id="resetChart" title="Reset chart">⟲</button></div></div>
  <div class="card" style="margin-top:14px"><h3>Positions <span class="tag">⇪ = copy PnL badge</span></h3><table><thead><tr><th>Instrument</th><th>Side</th><th>Size</th><th>Entry</th><th>Mark</th><th>PnL</th><th>TP</th><th>SL</th><th></th></tr></thead><tbody id="posBody"></tbody></table></div>
 </div>

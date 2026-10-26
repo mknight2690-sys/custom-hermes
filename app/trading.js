@@ -1,7 +1,7 @@
 // Custom Hermes Trading tab (renderer). Secrets only flow renderer->main on Save; never read back.
 (()=>{const ipc=require('electron').ipcRenderer;
 // one shared speech queue for all three tabs so announcements never overlap
-const VQ={muted:false,q:[],speaking:false,say(t){if(this.muted)return;if(this.q.length>=4)this.q.shift();this.q.push(t);this.pump()},
+const VQ={muted:false,q:[],speaking:false,say(t){if(this.muted||window.__CH_SILENT)return;if(this.q.length>=4)this.q.shift();this.q.push(t);this.pump()},
  pump(){if(this.speaking||!this.q.length)return;const t=this.q.shift();this.speaking=true;const done=()=>{this.speaking=false;setTimeout(()=>this.pump(),250)};ipc.invoke('tr:speak',t).then(done,done);},
  stop(){this.q=[];ipc.send('tr:speakstop');this.speaking=false}};
 const DEF={b:'BTC-USDT',c:'BIP-20DEC30-CDE'};const PFX={b:'',c:'Coinbase '};
@@ -11,7 +11,7 @@ function make(ex){const root=document.getElementById('trTpl').content.firstEleme
   q('#pickFile').textContent='📄 Select '+({b:'BloFin',c:'Coinbase'})[ex]+' API file';
  }
 const $=id=>root.querySelector('#'+id);const Q=s=>root.querySelectorAll(s);
-let cur='USDT',mode='demo',otype='market',equity=0,avail=0,inst=DEF[ex],bar='15m',insts=[],instMeta={},lastPrice=0,connected=false,timer=null;
+let cur='USDT',mode='demo',otype='market',equity=0,avail=0,inst=DEF[ex],bar='1H',insts=[],instMeta={},lastPrice=0,connected=false,timer=null;
 const fmt=(n,d=2)=>isFinite(+n)?(+n).toLocaleString(undefined,{maximumFractionDigits:d,minimumFractionDigits:Math.min(d,2)}):'–';
 const act=t=>{const d=document.createElement('div');d.textContent=new Date().toLocaleTimeString()+'  '+t;$('actLog').prepend(d);while($('actLog').children.length>80)$('actLog').lastChild.remove();};
 const setMsg=(id,t,c)=>{$(id).textContent=t||'';$(id).className='msg '+(c||'')};
@@ -63,9 +63,9 @@ async function poll(){const r=await ipc.invoke('tr:snapshot',ex);
  const b=Array.isArray(d.balance)?d.balance[0]:d.balance;const det=(b.details||[]).find(x=>x.currency===cur)||(b.details||[])[0]||{};
  equity=+b.totalEquity||+det.equity||0;avail=+det.available||+det.availableEquity||0;
  const pm=p=>+p.margin||+p.initialMargin||+p.imr||0;const posM=(d.positions||[]).reduce((s,p)=>s+pm(p),0);const used=Math.max(0,posM||(+d.marginUsed||0)||((+det.isolatedEquity||+b.isolatedEquity||0)+(+det.frozen||0)));const upnl=(d.positions||[]).reduce((s,p)=>s+(+p.unrealizedPnl||0),0);
- $('sEq').textContent=fmt(equity)+' '+cur;$('sEqSub').textContent=d.cash?'USD '+fmt(d.cash.USD)+' · USDC '+fmt(d.cash.USDC):'';$('sAv').textContent=fmt(avail);$('sMu').textContent=fmt(used);$('sPnl').textContent=(upnl>=0?'+':'')+fmt(upnl);$('sPnl').className=upnl>=0?'pos':'neg';
+ $('sEq').textContent=fmt(equity)+' '+cur;$('sEqSub').textContent=d.cash?'USD '+fmt(d.cash.USD)+' · USDC '+fmt(d.cash.USDC):'';$('sAv').textContent=fmt(avail);$('sMu').textContent=fmt(used);$('sPos').textContent=String((d.positions||[]).filter(p=>+p.positions!==0).length);$('sPnl').textContent=(upnl>=0?'+':'')+fmt(upnl);$('sPnl').className=upnl>=0?'pos':'neg';
  renderPos(d.positions||[],d.tpsl||[]);renderOrders(d.orders||[],d.tpsl||[]);voice.update(d.positions||[]);lab();if(!$('oMargin').dataset.touched)applyRuleMargin();proj();}
-function renderPos(list,tpsl){$('posBody').innerHTML=list.filter(p=>+p.positions!==0).map((p,i)=>{const sz=+p.positions,long=p.positionSide==='long'||(p.positionSide!=='short'&&sz>0);
+let LP=[],LT=[],PL=[];function renderPos(list,tpsl){LP=list||[];LT=tpsl||[];try{drawLines()}catch(e){}$('posBody').innerHTML=list.filter(p=>+p.positions!==0).map((p,i)=>{const sz=+p.positions,long=p.positionSide==='long'||(p.positionSide!=='short'&&sz>0);
   const t=tpsl.find(x=>x.instId===p.instId)||{};const pnl=+p.unrealizedPnl||0;
   return `<tr><td>${p.instId}</td><td class="${long?'pos':'neg'}">${long?'Long':'Short'} ${p.leverage||''}x</td><td>${Math.abs(sz)}</td><td>${fmt(p.averagePrice,6)}</td><td>${fmt(p.markPrice,6)}</td><td class="${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</td>
   <td><input data-i="${i}" data-k="tp" value="${p.tp||t.tpTriggerPrice||''}"></td><td><input data-i="${i}" data-k="sl" value="${p.sl||t.slTriggerPrice||''}"></td>
@@ -124,13 +124,18 @@ let chart,series;function initChart(){if(chart)return;chart=LightweightCharts.cr
  {let lw=0,tm;new ResizeObserver(en=>{const w=Math.round(en[0].contentRect.width);if(w>0&&Math.abs(w-lw)>4){lw=w;clearTimeout(tm);tm=setTimeout(()=>chart.timeScale().fitContent(),120)}}).observe($('chartWrap'));}
  series=chart.addCandlestickSeries({upColor:'#22d3ee',downColor:'#8b5cf6',borderVisible:false,wickUpColor:'#22d3ee',wickDownColor:'#8b5cf6'});}
 async function loadCandles(fit){initChart();const r=await ipc.invoke('tr:candles',ex,inst,bar);if(!r.ok){act('Chart: '+r.error);return}
- const data=r.data.map(c=>({time:Math.floor(+c[0]/1000),open:+c[1],high:+c[2],low:+c[3],close:+c[4]})).sort((a,b)=>a.time-b.time);series.setData(data);
+ const data=r.data.map(c=>({time:Math.floor(+c[0]/1000),open:+c[1],high:+c[2],low:+c[3],close:+c[4]})).sort((a,b)=>a.time-b.time);series.setData(data);try{drawLines()}catch(e){}
  if(data.length){lastPrice=data[data.length-1].close;$('lastPx').textContent=fmt(lastPrice,6)}if(fit)chart.timeScale().fitContent();proj();}
 $('resetChart').onclick=()=>{chart.timeScale().resetTimeScale();chart.priceScale('right').applyOptions({autoScale:true});chart.timeScale().fitContent()};
-$('barSel').onchange=()=>{bar=$('barSel').value;loadCandles(true)};
+{const BB=()=>Q('#barBtns [data-bar]').forEach(b=>b.classList.toggle('on',b.dataset.bar===bar));try{const s=localStorage.getItem('ch_bar_'+ex);if(s&&['5m','15m','1H','4H','1D'].includes(s))bar=s}catch(e){}BB();Q('#barBtns [data-bar]').forEach(b=>b.onclick=()=>{bar=b.dataset.bar;try{localStorage.setItem('ch_bar_'+ex,bar)}catch(e){}BB();loadCandles(true)});}
 $('instSearch').oninput=()=>{const q=$('instSearch').value.toUpperCase();const m=insts.filter(i=>i.includes(q)).slice(0,60);$('instList').innerHTML=m.map(i=>`<div>${i}</div>`).join('');$('instList').style.display=m.length?'block':'none';
  $('instList').querySelectorAll('div').forEach(d=>d.onclick=()=>{inst=d.textContent;$('instSearch').value=inst;$('instList').style.display='none';loadCandles(true)})};
 $('instSearch').onblur=()=>setTimeout(()=>$('instList').style.display='none',200);
+function drawLines(){if(!series)return;PL.forEach(l=>{try{series.removePriceLine(l)}catch(e){}});PL=[];
+ LP.filter(p=>+p.positions!==0&&p.instId===inst).forEach(p=>{const t=LT.find(x=>x.instId===p.instId)||{};const add=(v,c,n)=>{v=+v;if(v>0)PL.push(series.createPriceLine({price:v,color:c,lineWidth:1,lineStyle:2,axisLabelVisible:true,title:n}))};
+  add(p.averagePrice,'#9aa4c4','Entry');add(p.tp||t.tpTriggerPrice,'#22c55e','TP');add(p.sl||t.slTriggerPrice,'#ef4444','SL');});}
+function goInst(s){s=(s||'').trim().split(/\s/)[0];if(!s||s===inst)return;if(insts.length&&!insts.includes(s)){const m=insts.find(i=>i.replace(/[-_]/g,'')===s.replace(/[-_]/g,''));if(!m)return;s=m}inst=s;$('instSearch').value=s;loadCandles(true).then(()=>{try{drawLines()}catch(e){}});try{$('chartWrap').scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}}
+root.addEventListener('click',e=>{if(e.target.closest('input,button,select,a'))return;const tr=e.target.closest('#posBody tr,#ordBody tr,#histBody tr,[data-inst]');if(!tr)return;const v=tr.dataset.inst||(tr.cells&&tr.cells.length>1?tr.cells[0].textContent:'');if(v)goInst(v)});
 let started=false;
 async function start(){if(started)return;started=true;
  const r=await ipc.invoke('tr:instruments',ex);if(r.ok){r.data.forEach(i=>instMeta[i.instId]=i);insts=r.data.map(i=>i.instId).sort();if(!instMeta[inst]&&insts.length){inst=insts.find(i=>/^BTC|^BIP/.test(i))||insts[0];$('instSearch').value=inst}}
