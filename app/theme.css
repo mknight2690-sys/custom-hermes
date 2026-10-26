@@ -107,5 +107,5 @@ button[class~="bg-midground"] *{color:#fff !important}
 /* Custom Hermes: dashboard must fit the window width (vertical scroll only) */
 html,body{overflow-x:hidden !important;max-width:100vw !important}
 pre,code{white-space:pre-wrap !important;overflow-wrap:anywhere !important}
-img,svg,canvas,video,table{max-width:100% !important}
-table{table-layout:fixed}td,th{overflow-wrap:anywhere}
+img,video{max-width:100% !important}
+

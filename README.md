@@ -198,6 +198,6 @@ MIT
 - Per-exchange API file picker/parser (Coinbase: no passphrase; USD/USDC shown).
 - **Closed Trade History** on B and C: ticker, direction, entry, exit, size, PnL $ and %, open/close time, duration, WINNER/LOSER badge (net of fees), totals (wins, losses, win rate, total PnL). Exchange API first, local log fallback. Voice winner/loser calls use the same record.
 - **Cron prompt sync**: picking a credential file in B or C rewrites the matching Hermes cron prompts with a managed [CREDENTIALS] block (file path + format, never key values; BloFin = key/secret/passphrase, Coinbase = key name/private key, no passphrase), replaces stale paths, backs up cron/jobs.json first, and keeps paused jobs paused. Status line: "cron prompts updated for N jobs".
-- **Responsive layout**: no horizontal scrolling on any tab (tested at 900/1100/1400 px).
+- **Responsive layout**: no horizontal scrolling on any tab (tested at 900/1100/1400 px); price charts keep full width/height and refit on resize.
 - Updates: no in-app updater; reinstall the latest Setup exe (silent reinstall relaunches the app).
 

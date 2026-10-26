@@ -38,21 +38,23 @@
 @media (max-width:1250px){.trading .grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 /* no horizontal scrolling anywhere: everything fits the window width */
 html,body{overflow-x:hidden;max-width:100%}
-.trading{overflow-x:hidden;overflow-y:auto;box-sizing:border-box}.trading *{box-sizing:border-box;min-width:0}
+.trading{overflow-x:hidden;overflow-y:auto;box-sizing:border-box}.trading *:not(#chart *){box-sizing:border-box;min-width:0}
 .trading .grid>*,.trading .card{min-width:0;max-width:100%}.trading .card{container-type:inline-size}
 .trading .stats{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
-.trading table{table-layout:fixed;max-width:100%}.trading th,.trading td{overflow-wrap:anywhere;word-break:break-word}
-.trading td input{width:100%;max-width:90px}.trading td:last-child{white-space:normal !important}
+.trading table:not(#chart table){table-layout:fixed;max-width:100%}.trading .card>table th,.trading .card>table td{overflow-wrap:anywhere;word-break:break-word}
+.trading .card>table td input{width:100%;max-width:90px}.trading .card>table td:last-child{white-space:normal !important}
 .trading .row{flex-wrap:wrap}.trading #lastPx{flex:0 1 auto !important}
 .trading #chartWrap{width:100%;overflow:hidden}
 #tabs{flex-wrap:nowrap;overflow:hidden;min-width:0}
 @media (max-width:1000px){.trading .grid{grid-template-columns:minmax(0,1fr)}.trading{padding:12px}}
 /* narrow cards: tables stack into labelled rows instead of overflowing */
 @container (max-width:640px){
- .trading table thead{display:none}.trading table,.trading table tbody{display:block;width:100%}
- .trading table tr{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:2px 10px;padding:8px 0;border-bottom:1px solid rgba(140,160,255,.12)}
- .trading table td{border:0;padding:2px 4px}.trading table td[data-l]:not([data-l=""])::before{content:attr(data-l);display:block;font-size:10px;color:#8f9bc0}
- .trading table td[colspan]{grid-column:1/-1}}
+ .trading table:not(#chart table) thead{display:none}.trading table:not(#chart table),.trading table:not(#chart table) tbody{display:block;width:100%}
+ .trading table:not(#chart table) tr{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:2px 10px;padding:8px 0;border-bottom:1px solid rgba(140,160,255,.12)}
+ .trading table:not(#chart table) td{border:0;padding:2px 4px}.trading table:not(#chart table) td[data-l]:not([data-l=""])::before{content:attr(data-l);display:block;font-size:10px;color:#8f9bc0}
+ .trading table:not(#chart table) td[colspan]{grid-column:1/-1}}
 .trading .htot{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:#8f9bc0;margin-bottom:8px}.trading .htot b{margin-left:4px;color:#e8ecf8}
 .trading .wl{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.04em;padding:2px 8px;border-radius:999px;background:rgba(148,163,184,.18);color:#cbd5e1}
 .trading .wl.win{background:rgba(16,185,129,.2);color:#6ee7b7;border:1px solid rgba(16,185,129,.45)}.trading .wl.lose{background:rgba(244,63,94,.18);color:#fda4af;border:1px solid rgba(244,63,94,.45)}
+
+.trading #chart,.trading #chart *{min-width:revert}.trading #chart table{table-layout:auto;display:table}

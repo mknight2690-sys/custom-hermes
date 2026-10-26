@@ -121,6 +121,7 @@ async function send(dir){const v=validate(dir);if(v.e.length){setMsg('orderMsg',
 $('goLong').onclick=()=>send(1);$('goShort').onclick=()=>send(-1);
 // ---------- chart & instruments ----------
 let chart,series;function initChart(){if(chart)return;chart=LightweightCharts.createChart($('chart'),{layout:{background:{color:'transparent'},textColor:'#9aa4c4',fontFamily:'Inter,Segoe UI,sans-serif'},grid:{vertLines:{color:'rgba(140,160,255,.06)'},horzLines:{color:'rgba(140,160,255,.06)'}},rightPriceScale:{borderColor:'rgba(140,160,255,.14)'},timeScale:{borderColor:'rgba(140,160,255,.14)',timeVisible:true},crosshair:{mode:0},autoSize:true});
+ {let lw=0,tm;new ResizeObserver(en=>{const w=Math.round(en[0].contentRect.width);if(w>0&&Math.abs(w-lw)>4){lw=w;clearTimeout(tm);tm=setTimeout(()=>chart.timeScale().fitContent(),120)}}).observe($('chartWrap'));}
  series=chart.addCandlestickSeries({upColor:'#22d3ee',downColor:'#8b5cf6',borderVisible:false,wickUpColor:'#22d3ee',wickDownColor:'#8b5cf6'});}
 async function loadCandles(fit){initChart();const r=await ipc.invoke('tr:candles',ex,inst,bar);if(!r.ok){act('Chart: '+r.error);return}
  const data=r.data.map(c=>({time:Math.floor(+c[0]/1000),open:+c[1],high:+c[2],low:+c[3],close:+c[4]})).sort((a,b)=>a.time-b.time);series.setData(data);
