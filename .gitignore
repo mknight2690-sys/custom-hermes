@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+logs/
+autoselector/nous_keys.txt
+autoselector/nous_keys.local.txt
+autoselector/state.json
+.env
+*.env
+hermes-home/
+__pycache__/

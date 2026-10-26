@@ -1,0 +1,4 @@
+# One Nous Portal API key per line. Copy this file to nous_keys.txt (git-ignored).
+# Get free-tier keys at https://portal.nousresearch.com
+YOUR_NOUS_API_KEY_1
+YOUR_NOUS_API_KEY_2

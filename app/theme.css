@@ -1,0 +1,14 @@
+:root{color-scheme:dark}
+html,body{background:#0b0d12 !important;color:#e6e8ef !important;font-family:'Segoe UI Variable','Inter','Segoe UI',sans-serif !important}
+*{scrollbar-width:thin;scrollbar-color:#2a3142 transparent}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#2a3142;border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+nav,aside,header,[class*="sidebar" i]{background:rgba(17,20,28,.85) !important;backdrop-filter:blur(12px);border-color:#1f2533 !important}
+[class*="card" i],[class*="panel" i],section,table,pre,textarea,input,select{border-radius:12px !important;border-color:#1f2533 !important}
+[class*="card" i],[class*="panel" i]{background:linear-gradient(180deg,#121621,#0f121a) !important;box-shadow:0 6px 24px rgba(0,0,0,.35) !important}
+input,textarea,select{background:#0f131c !important;color:#e6e8ef !important;border:1px solid #232a3a !important}
+input:focus,textarea:focus,select:focus{outline:none !important;border-color:#7c5cff !important;box-shadow:0 0 0 3px rgba(124,92,255,.25) !important}
+button{border-radius:10px !important;transition:all .15s ease}
+button[class*="primary" i],button[type=submit]{background:linear-gradient(135deg,#7c5cff,#3a8bff) !important;color:#fff !important;border:0 !important}
+a{color:#8fb4ff}a:hover{color:#b6ceff}
+table th{background:#121621 !important;color:#8a93a8 !important;text-transform:uppercase;font-size:11px;letter-spacing:.6px}
+table tr:hover td{background:#141926 !important}
