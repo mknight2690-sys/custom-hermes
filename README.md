@@ -190,3 +190,12 @@ No keys ship in this repo. Everything binds to `127.0.0.1` only.
 ## License
 
 MIT
+
+## Trading tabs (v1.1.0)
+
+- **B Trading** (BloFin), **P Trading** (Propr), **C Trading** (Coinbase): account, positions with TP/SL edit, order form with projected PnL, open orders + TP/SL, chart with reset, PnL share badge, winner/loser/breakeven voice.
+- Rules enforced: margin = max(1.50, 10% equity), R:R >= 2.5, 5x isolated, stop mandatory.
+- Per-exchange API file picker/parser (Coinbase: no passphrase; USD/USDC shown).
+- P Trading sub-tabs per challenge/funded account, labelled with Propr's own names (e.g. 'Free Trial', '5K Starter 1-Step Turbo Challenge'), with drawdown floor, daily loss left, target, win rate and payout (derived values marked).
+- Updates: no in-app updater; reinstall the latest Setup exe (silent reinstall relaunches the app).
+

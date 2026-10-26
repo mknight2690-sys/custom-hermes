@@ -6,7 +6,7 @@ if(process.env.CUSTOM_HERMES_DEBUG||TEST)app.commandLine.appendSwitch('remote-de
 // one-time migration of userData from the old "Grok Replica" app
 try{if(!TEST){const nu=app.getPath('userData'),old=path.join(app.getPath('appData'),'Grok Replica');const flag=path.join(nu,'.migrated');
  if(fs.existsSync(old)&&!fs.existsSync(flag)){fs.cpSync(old,nu,{recursive:true,force:false,errorOnExist:false,filter:s=>!/(Cache|GPUCache|Code Cache|DawnCache|Crashpad|SingletonLock|lockfile)$/i.test(s)});fs.writeFileSync(flag,new Date().toISOString());}}}catch(e){}
-if(!app.requestSingleInstanceLock()){app.quit();}
+if(!process.env.CUSTOM_HERMES_SHAPE&&!app.requestSingleInstanceLock()){app.quit();}
 let win,tray,quitting=false;
 const up=p=>new Promise(r=>{const s=net.connect(p,'127.0.0.1');s.on('connect',()=>{s.end();r(true)});s.on('error',()=>r(false));setTimeout(()=>{s.destroy();r(false)},1500)});
 let lastKick=0;const logf=path.join(app.getPath('userData'),'app.log');const L=t=>{try{fs.appendFileSync(logf,new Date().toISOString()+' '+t+'\n')}catch(e){}};
@@ -28,7 +28,7 @@ ipcMain.on('log',(e,t)=>L('renderer: '+t));
 ipcMain.handle('css',()=>fs.readFileSync(path.join(__dirname,'theme.css'),'utf8'));
 ipcMain.on('win',(e,a)=>{if(a==='min')win.minimize();else if(a==='max')win.isMaximized()?win.unmaximize():win.maximize();else win.hide();});
 ipcMain.handle('login',(e,v)=>{if(v!==undefined)app.setLoginItemSettings({openAtLogin:v});return app.getLoginItemSettings().openAtLogin;});
-app.whenReady().then(()=>{L('start v'+app.getVersion()+(TEST?' TEST':''));require('./tradingMain').register();create();if(TEST)return;tray=new Tray(trayIcon);if(process.env.CUSTOM_HERMES_DEBUG)fs.writeFileSync(path.join(app.getPath('temp'),'hermes-tray.txt'),'tray empty='+trayIcon.isEmpty()+' size='+JSON.stringify(trayIcon.getSize()));tray.setToolTip('Custom Hermes');
+app.whenReady().then(async()=>{if(process.env.CUSTOM_HERMES_SHAPE){try{await require('./tradingMain').dumpShape(process.env.CUSTOM_HERMES_SHAPE)}catch(e){fs.writeFileSync(process.env.CUSTOM_HERMES_SHAPE,'ERR '+e.message)}app.exit(0);return;}L('start v'+app.getVersion()+(TEST?' TEST':''));require('./tradingMain').register();create();if(TEST)return;tray=new Tray(trayIcon);if(process.env.CUSTOM_HERMES_DEBUG)fs.writeFileSync(path.join(app.getPath('temp'),'hermes-tray.txt'),'tray empty='+trayIcon.isEmpty()+' size='+JSON.stringify(trayIcon.getSize()));tray.setToolTip('Custom Hermes');
  tray.setContextMenu(Menu.buildFromTemplate([{label:'Open',click:()=>win.show()},{label:'Restart services',click:()=>exec('schtasks /Run /TN CustomHermes',{windowsHide:true})},{type:'separator'},{label:'Quit',click:()=>{quitting=true;app.quit();}}]));
  tray.on('click',()=>win.show());});
 app.on('window-all-closed',()=>{});

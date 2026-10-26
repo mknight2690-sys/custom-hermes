@@ -9,16 +9,16 @@
 webview{flex:1;border:0}#load{position:absolute;top:38px;inset-inline:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#070a14;gap:16px}
 .sp2{width:42px;height:42px;border-radius:50%;border:3px solid #1f2533;border-top-color:#8b5cf6;animation:r 1s linear infinite}@keyframes r{to{transform:rotate(360deg)}}
 </style><link rel="stylesheet" href="trading.css"></head><body>
-<div id="bar"><span class="dot"></span><b>Custom Hermes</b><span id="tabs"><button class="on" data-tab="dash">Dashboard</button><button data-tab="trade">Trading</button></span><span id="tools" style="margin-left:10px"><button onclick="wv.goBack()">&#8592;</button><button onclick="wv.reload()">&#10227;</button><button onclick="wv.loadURL('http://127.0.0.1:9120/')">Home</button></span>
+<div id="bar"><span class="dot"></span><b>Custom Hermes</b><span id="tabs"><button class="on" data-tab="dash">Dashboard</button><button data-tab="b">B Trading</button><button data-tab="p">P Trading</button><button data-tab="c">C Trading</button></span><span id="tools" style="margin-left:10px"><button onclick="wv.goBack()">&#8592;</button><button onclick="wv.reload()">&#10227;</button><button onclick="wv.loadURL('http://127.0.0.1:9120/')">Home</button></span>
 <span class="sp"></span><label><input type="checkbox" id="lg"> Launch at login</label>
 <button onclick="ipc.send('win','min')">&#8211;</button><button onclick="ipc.send('win','max')">&#9744;</button><button id="x" onclick="ipc.send('win','close')">&#10005;</button></div>
-<div id="trading"><div class="grid">
+<template id="trTpl"><div class="trading" style="display:none"><div class="grid">
 <div>
  <div class="card"><h3>Connection <span class="tag" id="connTag">not connected</span></h3>
   <div class="seg" id="modeSeg"><button data-m="demo" class="on">Demo</button><button data-m="live">Live</button></div>
-  <label>API key</label><div class="pw"><input id="fKey" type="password" autocomplete="off" spellcheck="false"><span data-t="fKey">show</span></div>
-  <label>API secret</label><div class="pw"><input id="fSecret" type="password" autocomplete="off" spellcheck="false"><span data-t="fSecret">show</span></div>
-  <label>Passphrase</label><div class="pw"><input id="fPass" type="password" autocomplete="off" spellcheck="false"><span data-t="fPass">show</span></div>
+  <label class="lk">API key</label><div class="pw"><input id="fKey" type="password" autocomplete="off" spellcheck="false"><span data-t="fKey">show</span></div>
+  <div class="fsec"><label class="ls">API secret</label><div class="pw"><input id="fSecret" type="password" autocomplete="off" spellcheck="false"><span data-t="fSecret">show</span></div></div>
+  <div class="fpass"><label>Passphrase</label><div class="pw"><input id="fPass" type="password" autocomplete="off" spellcheck="false"><span data-t="fPass">show</span></div></div>
   <div class="row" style="margin-top:12px"><button class="b" id="pickFile">📄 Select API file</button></div>
   <div class="chips" id="foundChips"></div>
   <div class="row" style="margin-top:10px"><button class="b p" id="saveCreds">Save (encrypted)</button><button class="b" id="testConn">Test</button></div>
@@ -28,29 +28,29 @@ webview{flex:1;border:0}#load{position:absolute;top:38px;inset-inline:0;bottom:0
  <div class="card" style="margin-top:14px"><h3>Order <span class="tag">5x isolated</span></h3>
   <div class="seg" id="typeSeg"><button data-t="market" class="on">Market</button><button data-t="limit">Limit</button></div>
   <div id="limitRow" style="display:none"><label>Limit price</label><input id="oPrice" type="number" step="any"></div>
-  <div class="row"><div><label>Leverage</label><input id="oLev" type="number" value="5" min="1" max="125"></div><div><label>Margin (USDT)</label><input id="oMargin" type="number" step="0.01"></div></div>
+  <div class="row"><div><label>Leverage</label><input id="oLev" type="number" value="5" min="1" max="125"></div><div><label>Margin (<span class="cur">USDT</span>)</label><input id="oMargin" type="number" step="0.01"></div></div>
   <label>Margin % of available <span id="pctLbl">10%</span></label><input id="oPct" type="range" min="1" max="100" value="10">
   <div class="row"><div><label>Take profit</label><input id="oTP" type="number" step="any"></div><div><label>Stop loss *</label><input id="oSL" type="number" step="any"></div></div>
   <div class="proj" id="proj"></div>
   <div class="row" style="margin-top:12px"><button class="b long" id="goLong">Long</button><button class="b short" id="goShort">Short</button></div>
   <div class="msg" id="orderMsg"></div>
-  <div class="rules">Rules: margin per trade = max(1.50 USDT, 10% of equity) · R:R ≥ 2.5 · 5x isolated · stop loss required.</div>
+  <div class="rules">Rules: margin per trade = max(1.50 <span class="cur">USDT</span>, 10% of equity) · R:R ≥ 2.5 · 5x isolated · stop loss required.</div>
  </div>
 </div>
 <div>
- <div class="stats"><div class="card stat"><div>Equity</div><b id="sEq">–</b></div><div class="card stat"><div>Available</div><b id="sAv">–</b></div><div class="card stat"><div>Margin used</div><b id="sMu">–</b></div><div class="card stat"><div>Unrealized PnL</div><b id="sPnl">–</b></div></div>
+ <div class="seg acct" id="acctSeg" style="display:none;margin-bottom:12px"></div><div class="card" id="pInfo" style="display:none;margin-bottom:14px"></div><div class="stats"><div class="card stat"><div>Equity</div><b id="sEq">–</b><div id="sEqSub" style="font-size:10.5px;margin-top:3px"></div></div><div class="card stat"><div>Available</div><b id="sAv">–</b></div><div class="card stat"><div>Margin used</div><b id="sMu">–</b></div><div class="card stat"><div>Unrealized PnL</div><b id="sPnl">–</b></div></div>
  <div class="card"><div class="row" style="margin-bottom:10px"><div class="instbox" style="flex:2"><input id="instSearch" placeholder="Search instrument (e.g. BTC)" value="BTC-USDT"><div id="instList"></div></div>
   <select id="barSel" style="flex:0 0 90px"><option>1m</option><option>5m</option><option selected>15m</option><option>1H</option><option>4H</option><option>1D</option></select><b id="lastPx" style="flex:0 0 120px;text-align:right;font-size:18px">–</b></div>
   <div id="chartWrap"><div id="chart"></div><button id="resetChart" title="Reset chart">⟲</button></div></div>
- <div class="card" style="margin-top:14px"><h3>Positions</h3><table><thead><tr><th>Instrument</th><th>Side</th><th>Size</th><th>Entry</th><th>Mark</th><th>PnL</th><th>TP</th><th>SL</th><th></th></tr></thead><tbody id="posBody"></tbody></table></div>
+ <div class="card" style="margin-top:14px"><h3>Positions <span class="tag">⇪ = copy PnL badge</span></h3><table><thead><tr><th>Instrument</th><th>Side</th><th>Size</th><th>Entry</th><th>Mark</th><th>PnL</th><th>TP</th><th>SL</th><th></th></tr></thead><tbody id="posBody"></tbody></table></div>
 </div>
 <div>
  <div class="card"><h3>Open orders</h3><table><thead><tr><th>Inst</th><th>Side</th><th>Type</th><th>Price</th><th>Size</th><th></th></tr></thead><tbody id="ordBody"></tbody></table></div>
  <div class="card" style="margin-top:14px"><h3>TP / SL orders</h3><table><thead><tr><th>Inst</th><th>TP</th><th>SL</th><th></th></tr></thead><tbody id="tpslBody"></tbody></table></div>
  <div class="card" style="margin-top:14px"><h3>Activity</h3><div id="actLog" style="font-size:12px;color:#aeb7d4;max-height:300px;overflow:auto;line-height:1.6"></div></div>
 </div>
-</div></div>
-
+</div></div></template>
+<div id="trHost"></div>
 <webview id="wv" src="about:blank"></webview>
 <div id="load"><div class="sp2" id="sp"></div><div id="msg">Starting Custom Hermes services…</div></div>
 <script>
@@ -67,5 +67,5 @@ async function go(){if(busy)return;busy=true;loaded=false;load.style.display='fl
  const r=await ipc.invoke('ensure');if(r.ok){busy=false;log('ensure ok, loading');let n=0;const tryLoad=()=>{if(loaded)return;n++;try{wv.loadURL(URL0).catch(e=>{if(n<30&&!loaded)setTimeout(tryLoad,1000)});}catch(e){if(n===1)log('webview not ready yet: '+e.message);if(n<30)setTimeout(tryLoad,1000);else fail('Dashboard view did not attach.');}};tryLoad();}else{log('ensure failed: '+r.why);fail(r.why);}}
 go();
 </script><script src="vendor/lwc.js"></script><script src="trading.js"></script>
-<script>document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));const t=b.dataset.tab==='trade';
-document.getElementById('trading').style.display=t?'block':'none';document.getElementById('tools').style.visibility=t?'hidden':'visible';if(t)window.__startTrading();});</script></body></html>
+<script>document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));const t=b.dataset.tab;
+document.querySelectorAll('.trading').forEach(d=>d.style.display=d.id==='trading_'+t?'block':'none');document.getElementById('tools').style.visibility=t!=='dash'?'hidden':'visible';if(t!=='dash')window.__startTrading(t);});</script></body></html>
