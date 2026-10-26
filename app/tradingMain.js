@@ -78,8 +78,8 @@ const C={
       const l=cfg.limit_limit_gtc||cfg.limit_limit_gtd||cfg.stop_limit_stop_limit_gtc||{};orders.push({orderId:o.order_id,instId:o.product_id,side:String(o.side).toLowerCase(),orderType:String(o.order_type||'').toLowerCase(),price:l.limit_price||o.average_filled_price,size:l.base_size||o.filled_size});}
     const tpsl=Object.values(tp).map(x=>({...x,tpslId:x.tpslId.join(',')}));
     const positions=(pos.positions||[]).filter(p=>+p.number_of_contracts).map(p=>{const sh=/SHORT/i.test(p.side);const q=Math.abs(+p.number_of_contracts);const t=tp[p.product_id]||{};
-      return {instId:p.product_id,positionSide:sh?'short':'long',positions:String(sh?-q:q),averagePrice:p.avg_entry_price,markPrice:p.current_price,unrealizedPnl:p.unrealized_pnl,leverage:p.leverage||'',marginMode:p.margin_type||'',tp:t.tpTriggerPrice||'',sl:t.slTriggerPrice||''}});
-    return {balance:{totalEquity:String(eq),details:[{currency:'USD',equity:String(eq),available:String(s?+s.futures_buying_power?.value:cash.USD+cash.USDC),frozen:'0',isolatedEquity:String(s?+s.initial_margin?.value||0:0)}]},cash,positions,orders,tpsl};},
+      return {instId:p.product_id,positionSide:sh?'short':'long',positions:String(sh?-q:q),averagePrice:p.avg_entry_price,markPrice:p.current_price,unrealizedPnl:p.unrealized_pnl,leverage:p.leverage||'',marginMode:p.margin_type||'',margin:String(+p.initial_margin?.value||+p.position_initial_margin?.value||(q*(+(cInst[p.product_id]||{}).contractValue||1)*(+p.current_price||+p.avg_entry_price||0)/(+p.leverage||5))||0),tp:t.tpTriggerPrice||'',sl:t.slTriggerPrice||''}});
+    return {marginUsed:String(s?+s.initial_margin?.value||0:0),balance:{totalEquity:String(eq),details:[{currency:'USD',equity:String(eq),available:String(s?+s.futures_buying_power?.value:cash.USD+cash.USDC),frozen:'0',isolatedEquity:String(s?+s.initial_margin?.value||0:0)}]},cash,positions,orders,tpsl};},
   async instruments(){const j=await jget(CB+'/api/v3/brokerage/market/products?product_type=FUTURE&limit=500');
     return (j.products||[]).filter(p=>!p.trading_disabled).map(p=>{const m={instId:p.product_id,contractValue:p.future_product_details?.contract_size||'1',lotSize:p.base_increment||'1',minSize:p.base_min_size||'1',name:p.display_name};cInst[p.product_id]=m;return m});},
   async candles(instId,bar){const g={'1m':['ONE_MINUTE',60],'5m':['FIVE_MINUTE',300],'15m':['FIFTEEN_MINUTE',900],'1H':['ONE_HOUR',3600],'4H':['SIX_HOUR',21600],'1D':['ONE_DAY',86400]}[bar]||['FIFTEEN_MINUTE',900];
@@ -97,7 +97,7 @@ const C={
 const AD={b:B,c:C};
 
 // ---------- mock data for hidden-window tests (no network for account data, no orders) ----------
-const mockPos={b:[{instId:'BTC-USDT',positionSide:'net',positions:'0.5',averagePrice:'67000',markPrice:'67450',unrealizedPnl:'2.25',leverage:'5',marginMode:'isolated',margin:'6.7',tp:'68800',sl:'66400'}],
+const mockPos={b:[{instId:'BTC-USDT',positionSide:'net',positions:'0.5',averagePrice:'67000',markPrice:'67450',unrealizedPnl:'2.25',leverage:'5',marginMode:'cross',initialMargin:'6.7',tp:'68800',sl:'66400'}],
   c:[{instId:'BIP-20DEC30-CDE',positionSide:'short',positions:'-1',averagePrice:'67100',markPrice:'67000',unrealizedPnl:'1.00',leverage:'5',marginMode:'isolated',tp:'66000',sl:'67540'}]};
 const mockBal=(cur,eq,av,used)=>({totalEquity:String(eq),details:[{currency:cur,equity:String(eq),available:String(av),frozen:'0',isolatedEquity:String(used)}]});
 function mockSnap(ex,sel){const pos=mockPos[ex];

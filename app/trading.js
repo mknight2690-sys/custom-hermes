@@ -62,7 +62,7 @@ async function poll(){const r=await ipc.invoke('tr:snapshot',ex);
  if(failStreak)$('connTag').textContent=(ex==='b'?mode:'live')+' · connected';failStreak=0;const d=r.data;if(Date.now()-histAt>30000)loadHist();
  const b=Array.isArray(d.balance)?d.balance[0]:d.balance;const det=(b.details||[]).find(x=>x.currency===cur)||(b.details||[])[0]||{};
  equity=+b.totalEquity||+det.equity||0;avail=+det.available||+det.availableEquity||0;
- const used=Math.max(0,(+det.frozen||0)+(+det.isolatedEquity||+b.isolatedEquity||0));const upnl=(d.positions||[]).reduce((s,p)=>s+(+p.unrealizedPnl||0),0);
+ const pm=p=>+p.margin||+p.initialMargin||+p.imr||0;const posM=(d.positions||[]).reduce((s,p)=>s+pm(p),0);const used=Math.max(0,posM||(+d.marginUsed||0)||((+det.isolatedEquity||+b.isolatedEquity||0)+(+det.frozen||0)));const upnl=(d.positions||[]).reduce((s,p)=>s+(+p.unrealizedPnl||0),0);
  $('sEq').textContent=fmt(equity)+' '+cur;$('sEqSub').textContent=d.cash?'USD '+fmt(d.cash.USD)+' · USDC '+fmt(d.cash.USDC):'';$('sAv').textContent=fmt(avail);$('sMu').textContent=fmt(used);$('sPnl').textContent=(upnl>=0?'+':'')+fmt(upnl);$('sPnl').className=upnl>=0?'pos':'neg';
  renderPos(d.positions||[],d.tpsl||[]);renderOrders(d.orders||[],d.tpsl||[]);voice.update(d.positions||[]);lab();if(!$('oMargin').dataset.touched)applyRuleMargin();proj();}
 function renderPos(list,tpsl){$('posBody').innerHTML=list.filter(p=>+p.positions!==0).map((p,i)=>{const sz=+p.positions,long=p.positionSide==='long'||(p.positionSide!=='short'&&sz>0);
@@ -76,7 +76,7 @@ function renderPos(list,tpsl){$('posBody').innerHTML=list.filter(p=>+p.positions
  Q('[data-close]').forEach(b=>b.onclick=async()=>{const p=live[b.dataset.close];if(!confirm('Close '+p.instId+' at market?'))return;const r=await ipc.invoke('tr:close',ex,p);act(r.ok?'Close sent for '+p.instId:'Close failed: '+r.error)});
  Q('[data-share]').forEach(b=>b.onclick=async()=>{const r=await share(live[b.dataset.share]);act(r.ok?'PnL badge copied to clipboard':'Badge failed')});}
 function badge(p){const c=document.createElement('canvas');c.width=640;c.height=340;const g=c.getContext('2d');const pnl=+p.unrealizedPnl||0,up=pnl>=0;
- const sz=Math.abs(+p.positions),long=p.positionSide==='long'||(p.positionSide!=='short'&&+p.positions>0);const m=+p.margin||(sz*(+p.averagePrice||0)*((instMeta[p.instId]||{}).contractValue||1)/(+p.leverage||5));const roe=m?pnl/m*100:0;
+ const sz=Math.abs(+p.positions),long=p.positionSide==='long'||(p.positionSide!=='short'&&+p.positions>0);const m=+p.margin||+p.initialMargin||(sz*(+p.averagePrice||0)*((instMeta[p.instId]||{}).contractValue||1)/(+p.leverage||5));const roe=m?pnl/m*100:0;
  const bg=g.createLinearGradient(0,0,640,340);bg.addColorStop(0,'#0b1024');bg.addColorStop(1,up?'#0c2a2a':'#2a0c1e');g.fillStyle=bg;g.fillRect(0,0,640,340);
  g.fillStyle='rgba(139,92,246,.35)';g.fillRect(0,0,640,6);g.font='600 18px Segoe UI';g.fillStyle='#a5b4fc';g.fillText('Custom Hermes · '+({b:'B Trading · BloFin',c:'C Trading · Coinbase'})[ex],32,44);
  g.font='700 34px Segoe UI';g.fillStyle='#fff';g.fillText(p.instId,32,98);g.font='600 20px Segoe UI';g.fillStyle=long?'#34d399':'#fb7185';g.fillText((long?'LONG ':'SHORT ')+(p.leverage||'')+'x',32,130);
