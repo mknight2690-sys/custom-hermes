@@ -1,0 +1,38 @@
+#trading{position:absolute;z-index:30;top:38px;left:0;right:0;bottom:0;overflow:auto;display:none;padding:18px;color:#e8ecf8;
+ background:radial-gradient(1100px 650px at 90% -10%,rgba(139,92,246,.16),transparent 60%),radial-gradient(800px 600px at -10% 110%,rgba(34,211,238,.10),transparent 60%),#070a14;font-family:"Inter","Segoe UI Variable","Segoe UI",system-ui,sans-serif}
+#trading .grid{display:grid;grid-template-columns:330px 1fr 340px;gap:14px}
+#trading .card{background:rgba(18,24,44,.55);backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.14);border-radius:16px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+#trading h3{margin:0 0 10px;font-size:13px;font-weight:650;color:#c9d2f0;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+#trading label{display:block;font-size:11.5px;color:#8f9bc0;margin:8px 0 4px}
+#trading input,#trading select{width:100%;background:rgba(8,12,24,.8);color:#e8ecf8;border:1px solid rgba(140,160,255,.2);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px;outline:none}
+#trading input:focus,#trading select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,.25)}
+#trading .row{display:flex;gap:8px;align-items:center}#trading .row>*{flex:1}
+#trading button.b{border:1px solid rgba(140,160,255,.22);background:rgba(125,160,255,.06);color:#e3e8fa;border-radius:10px;padding:8px 12px;font-weight:600;font-size:12.5px;cursor:pointer;transition:all .15s}
+#trading button.b:hover{background:rgba(125,160,255,.14);border-color:rgba(139,92,246,.5)}
+#trading button.p{background:linear-gradient(135deg,#22d3ee,#8b5cf6);border:0;color:#fff;box-shadow:0 4px 18px rgba(99,102,241,.35)}
+#trading button.long{background:linear-gradient(135deg,#10b981,#22d3ee);border:0;color:#04121a}#trading button.short{background:linear-gradient(135deg,#f43f5e,#8b5cf6);border:0;color:#fff}
+#trading .seg{display:flex;background:rgba(10,14,28,.7);border:1px solid rgba(140,160,255,.14);border-radius:12px;padding:3px}
+#trading .seg button{flex:1;border:0;background:none;color:#9aa4c4;padding:7px;border-radius:9px;font-weight:600;cursor:pointer}
+#trading .seg button.on{background:rgba(139,92,246,.24);color:#fff}
+#trading .pw{position:relative}#trading .pw input{padding-right:52px}#trading .pw span{position:absolute;right:8px;top:7px;font-size:11px;color:#8fb4ff;cursor:pointer;user-select:none}
+#trading .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}#trading .chip{font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(34,211,238,.12);color:#a5f3fc;border:1px solid rgba(34,211,238,.25)}
+#trading .chip.miss{background:rgba(244,63,94,.1);color:#fecdd3;border-color:rgba(244,63,94,.25)}
+#trading .msg{font-size:12px;margin-top:8px;color:#9aa4c4;min-height:16px}#trading .ok{color:#6ee7b7}#trading .err{color:#fda4af}
+#trading .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+#trading .stat{padding:12px 14px}#trading .stat div{font-size:11px;color:#8f9bc0}#trading .stat b{display:block;font-size:20px;margin-top:4px;font-weight:700}
+#trading table{width:100%;border-collapse:collapse;font-size:12.5px}#trading th{text-align:left;color:#8f9bc0;font-weight:600;font-size:11px;padding:6px 8px;border-bottom:1px solid rgba(140,160,255,.14)}
+#trading td{padding:7px 8px;border-bottom:1px solid rgba(140,160,255,.08)}#trading tr:hover td{background:rgba(125,160,255,.05)}
+#trading td input{width:80px;padding:4px 6px;font-size:12px}
+#trading .pos{color:#6ee7b7}#trading .neg{color:#fda4af}
+#trading #chartWrap{position:relative;height:380px}#trading #chart{position:absolute;inset:0}
+#trading #resetChart{position:absolute;right:62px;bottom:30px;z-index:5;width:34px;height:34px;border-radius:50%;border:1px solid rgba(140,160,255,.3);background:rgba(14,19,36,.85);color:#c4b5fd;font-size:16px;cursor:pointer;backdrop-filter:blur(8px)}
+#trading #resetChart:hover{border-color:#8b5cf6;color:#fff}
+#trading .instbox{position:relative}#trading #instList{position:absolute;z-index:20;top:38px;left:0;right:0;max-height:260px;overflow:auto;background:rgba(14,19,36,.97);border:1px solid rgba(140,160,255,.2);border-radius:12px;display:none}
+#trading #instList div{padding:7px 10px;font-size:12.5px;cursor:pointer}#trading #instList div:hover{background:rgba(139,92,246,.18)}
+#trading input[type=range]{accent-color:#8b5cf6;padding:0}
+#trading .proj{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-top:10px;background:rgba(8,12,24,.6);border-radius:10px;padding:10px}
+#trading .rules{font-size:11px;color:#8f9bc0;margin-top:8px;line-height:1.5}
+#trading .tag{font-size:10.5px;padding:2px 7px;border-radius:6px;background:rgba(139,92,246,.2);color:#ddd6fe;margin-left:auto}
+#tabs{display:flex;gap:4px;margin-left:18px;-webkit-app-region:no-drag}#tabs button{width:auto !important;padding:0 14px !important;height:28px !important;border-radius:8px;font-size:12.5px !important;color:#9aa4c4 !important}
+#tabs button.on{background:rgba(139,92,246,.24) !important;color:#fff !important}
+@media (max-width:1250px){#trading .grid{grid-template-columns:1fr 1fr}}

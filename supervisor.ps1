@@ -1,13 +1,13 @@
-# Grok Replica supervisor: keeps autoselector (8788), Hermes dashboard (9120) and Hermes gateway (cron) alive.
+# Custom Hermes supervisor: keeps autoselector (8788), Hermes dashboard (9120) and Hermes gateway (cron) alive.
 param(
   [string]$Root = $PSScriptRoot,
-  [string]$Hermes = $env:GROK_REPLICA_HERMES,
-  [string]$Python = $env:GROK_REPLICA_PYTHON,
+  [string]$Hermes = $env:CUSTOM_HERMES_HERMES,
+  [string]$Python = $env:CUSTOM_HERMES_PYTHON,
   [int]$AutoPort = 8788,
   [int]$DashPort = 9120
 )
 $ErrorActionPreference = 'Continue'
-$m = New-Object System.Threading.Mutex($false, 'Global\GrokReplicaSupervisor'); if (-not $m.WaitOne(0)) { exit 0 }
+$m = New-Object System.Threading.Mutex($false, 'Global\Custom-HermesSupervisor'); if (-not $m.WaitOne(0)) { exit 0 }
 if (-not $Hermes) { $c = Get-Command hermes -EA 0; $Hermes = if ($c) { $c.Source } else { "$env:LOCALAPPDATA\hermes\bin\hermes.exe" } }
 if (-not $Python) { $c = Get-Command pythonw -EA 0; $Python = if ($c) { $c.Source } else { (Get-Command python).Source } }
 $env:HERMES_HOME = "$Root\hermes-home"; $env:PORT = "$AutoPort"

@@ -1,5 +1,5 @@
 ﻿#!/usr/bin/env python3
-"""Free-model Autoselector v3: OpenAI-compatible server on 127.0.0.1 (PORT env, default 8787; Grok Replica uses 8788).
+"""Free-model Autoselector v3: OpenAI-compatible server on 127.0.0.1 (PORT env, default 8787; Custom Hermes uses 8788).
 Uses a local JSON state file (state.json): model stats, cooldowns, tuning, free-model list persist across restarts.
 No deferrals/aborts: deadline is unbounded, keys x models are cycled until a reply comes back; Pollinations is last resort."""
 import json, os, time, threading, hashlib, random, urllib.request, urllib.error
@@ -10,7 +10,7 @@ NOUS_REC = "https://portal.nousresearch.com/api/nous/recommended-models"
 NOUS_MODELS = "https://inference-api.nousresearch.com/v1/models"
 POLL_URL = "https://text.pollinations.ai/openai"
 KEYFILES = ([os.environ["NOUS_KEYS_FILE"]] if os.environ.get("NOUS_KEYS_FILE") else []) + [os.path.join(HERE, "nous_keys.txt"), os.path.join(HERE,"nous_keys.local.txt")]
-UA = {"User-Agent": "GrokReplica/1.0 python", "Accept": "application/json"}
+UA = {"User-Agent": "CustomHermes/1.0 python", "Accept": "application/json"}
 # ---- local kv (replaces kt.db kv table) ----
 _kvl = threading.Lock()
 try: KV = json.load(open(STATE))

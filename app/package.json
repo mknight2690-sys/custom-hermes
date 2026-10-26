@@ -1,7 +1,7 @@
 {
- "name": "grok-replica",
- "productName": "Grok Replica",
- "version": "1.0.4",
+ "name": "custom-hermes",
+ "productName": "Custom Hermes",
+ "version": "1.1.0",
  "main": "main.js",
  "scripts": {
   "dist": "electron-builder --win nsis"
@@ -11,12 +11,16 @@
   "electron-builder": "^25.1.8"
  },
  "build": {
-  "appId": "io.github.grokreplica",
-  "productName": "Grok Replica",
+  "appId": "com.custom.hermes",
+  "productName": "Custom Hermes",
   "files": [
    "main.js",
    "shell.html",
-   "theme.css"
+   "theme.css",
+   "tradingMain.js",
+   "trading.js",
+   "trading.css",
+   "vendor/**"
   ],
   "win": {
    "target": "nsis",
@@ -27,7 +31,7 @@
    "perMachine": false,
    "createDesktopShortcut": "always",
    "createStartMenuShortcut": true,
-   "shortcutName": "Grok Replica",
+   "shortcutName": "Custom Hermes",
    "installerIcon": "build/icon.ico",
    "uninstallerIcon": "build/icon.ico",
    "installerHeaderIcon": "build/icon.ico"
@@ -41,6 +45,7 @@
      "icon.*"
     ]
    }
-  ]
+  ],
+  "artifactName": "Custom-Hermes-Setup-${version}.${ext}"
  }
 }

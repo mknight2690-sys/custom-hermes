@@ -1,4 +1,4 @@
-/* Grok Replica theme v1.0.2 */
+/* Custom Hermes theme v1.0.2 */
 :root,:root.dark,html{
  --background:#070a14 !important;--background-base:#070a14 !important;
  --midground:#7dd3fc !important;--midground-base:#7dd3fc !important;
@@ -32,7 +32,7 @@ pre,code,kbd,samp,.font-mono,textarea[class*="mono"]{font-family:var(--font-mono
 #app-sidebar > div:first-child{height:56px}
 #app-sidebar > div:first-child span{font-size:0 !important}
 #app-sidebar > div:first-child span::before{content:"";display:inline-block;width:30px;height:30px;border-radius:9px;background:var(--gr-grad);-webkit-mask:none;box-shadow:0 0 18px rgba(124,92,255,.55)}
-#app-sidebar > div:first-child span::after{content:"Grok Replica";font-size:15px;font-weight:650;margin-left:10px;vertical-align:9px;background:var(--gr-grad);-webkit-background-clip:text;color:transparent}
+#app-sidebar > div:first-child span::after{content:"Custom Hermes";font-size:15px;font-weight:650;margin-left:10px;vertical-align:9px;background:var(--gr-grad);-webkit-background-clip:text;color:transparent}
 #app-sidebar a{border-radius:10px !important;margin:2px 8px !important;transition:background .15s,color .15s;color:#aeb7d4 !important}
 #app-sidebar a svg{min-width:18px;width:18px;height:18px}
 #app-sidebar a:hover{background:rgba(125,160,255,.09) !important;color:#fff !important}

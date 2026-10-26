@@ -1,9 +1,9 @@
 <#
-Grok Replica installer (idempotent). Run from the repo root in PowerShell:
+Custom Hermes installer (idempotent). Run from the repo root in PowerShell:
   powershell -ExecutionPolicy Bypass -File .\install.ps1 [-InstallDir <path>] [-SkipApp] [-SkipHermesInstall] [-AtStartup] [-DryRun]
 #>
 param(
-  [string]$InstallDir = "$env:USERPROFILE\GrokReplica",
+  [string]$InstallDir = "$env:USERPROFILE\Custom-Hermes",
   [switch]$SkipApp,
   [switch]$SkipHermesInstall,
   [switch]$AtStartup,   # also add a boot trigger (requires an elevated shell)
@@ -50,7 +50,7 @@ if (-not (Test-Path $kf) -and -not $env:NOUS_API_KEY) {
   Write-Warning "No keys yet. Put one Nous Portal key per line in $kf (see nous_keys.example.txt) or set NOUS_API_KEY. Without keys the autoselector falls back to Pollinations (slow, keyless)."
 }
 
-Step 'Scheduled task GrokReplica'
+Step 'Scheduled task CustomHermes'
 $pwsh = (Get-Command powershell).Source
 $arg = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$InstallDir\supervisor.ps1`" -Root `"$InstallDir`" -Hermes `"$hermes`""
 Do-It 'register task (AtLogOn, restart on failure)' {
@@ -58,8 +58,8 @@ Do-It 'register task (AtLogOn, restart on failure)' {
   $t = @(New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME)
   if ($AtStartup) { $t += New-ScheduledTaskTrigger -AtStartup }
   $s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
-  Register-ScheduledTask -TaskName GrokReplica -Action $a -Trigger $t -Settings $s -Description 'Grok Replica supervisor' -Force | Out-Null
-  Start-ScheduledTask -TaskName GrokReplica
+  Register-ScheduledTask -TaskName CustomHermes -Action $a -Trigger $t -Settings $s -Description 'Custom Hermes supervisor' -Force | Out-Null
+  Start-ScheduledTask -TaskName CustomHermes
 }
 
 Step 'Hourly heartbeat cron'
